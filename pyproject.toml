@@ -83,13 +83,13 @@ ignore = [
 
 [tool.mypy]
 python_version = "3.12"
-warn_return_any = false
+warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
+disallow_untyped_defs = false  # Enable gradually per-module
 disallow_any_unimported = false
 no_implicit_optional = false
-warn_redundant_casts = false
-warn_unused_ignores = false
+warn_redundant_casts = true
+warn_unused_ignores = true
 warn_no_return = false
 check_untyped_defs = false
 strict_equality = false
@@ -100,6 +100,7 @@ follow_imports = "silent"
 ignore_errors = false
 
 [[tool.mypy.overrides]]
+# External libraries without type stubs
 module = [
     "airflow.*",
     "great_expectations.*",
@@ -114,13 +115,10 @@ module = [
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+# Internal modules - relaxed type checking for demo clarity
+# Future: Enable stricter checking module-by-module
 module = [
     "src.spark_apps.*",
-    "dags.factory.*",
-    "src.operators.quality.*",
-    "src.operators.notifications.*",
-    "src.operators.spark.*",
-    "src.hooks.*",
     "src.utils.retry_policies",
     "src.utils.timeout_handler",
     "src.utils.notification_templates",
@@ -130,7 +128,6 @@ module = [
 disallow_untyped_defs = false
 check_untyped_defs = false
 warn_return_any = false
-ignore_errors = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"
