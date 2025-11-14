@@ -96,13 +96,19 @@ class CompletenessChecker(BaseQualityOperator):
 
     def get_previous_count(self, context: dict[str, Any]) -> int | None:
         """
-        Get row count from previous execution.
+        Get row count from previous execution for historical comparison.
 
         :param context: Airflow context
         :return: Previous row count or None
+
+        FUTURE ENHANCEMENT: Historical row count comparison
+        Implementation would:
+        1. Query warehouse.quality_check_results for previous execution
+        2. Filter by: table_name, check_type='completeness', execution_date < current
+        3. Extract row_count from metrics JSON column
+        4. Enable detection of significant row count drops (potential data issues)
+        Currently returns None, disabling deviation threshold checks.
         """
-        # TODO: Implement by querying quality_check_results table
-        # For now, return None
         return None
 
     def perform_check(self, context: dict[str, Any]) -> dict[str, Any]:

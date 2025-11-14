@@ -189,9 +189,14 @@ class BaseQualityOperator(BaseOperator):
             return
 
         try:
-            # TODO: Implement result storage to warehouse.quality_check_results table
-            # This would require WarehouseHook integration
-            logger.debug("Result storage not yet implemented", extra={"result": result})
+            # FUTURE ENHANCEMENT: Result storage to warehouse.quality_check_results table
+            # Implementation would require:
+            # 1. Use WarehouseHook to connect to warehouse database
+            # 2. Insert into quality_check_results table (see src/warehouse/migrations/002_etl_metadata_schema.sql)
+            # 3. Store: check_id, table_name, check_type, severity, status, metrics, timestamp
+            # 4. Enable historical trending and SLA monitoring
+            # For now, results are logged and can be retrieved from Airflow task logs
+            logger.debug("Result storage to database not yet implemented (see inline docs for implementation plan)", extra={"result": result})
         except Exception as e:
             # Don't fail task if result storage fails
             logger.warning(
