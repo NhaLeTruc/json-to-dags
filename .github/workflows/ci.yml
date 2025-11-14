@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  PYTHON_VERSION: '3.11'
+  PYTHON_VERSION: '3.12'
   AIRFLOW_HOME: /home/runner/airflow
   AIRFLOW__CORE__DAGS_FOLDER: ${{ github.workspace }}/dags
   AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
@@ -57,7 +57,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.11']
+        python-version: ['3.12']
       fail-fast: false
 
     services:
