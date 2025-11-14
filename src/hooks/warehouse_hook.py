@@ -2,6 +2,13 @@
 Warehouse database hook for Apache Airflow ETL Demo Platform.
 
 Provides connection management and query execution for the mock data warehouse.
+
+NOTE: This hook uses per-instance connection caching but does not implement
+full connection pooling. For production use cases with high concurrency,
+consider extending airflow.providers.postgres.hooks.postgres.PostgresHook
+which provides built-in connection pooling via SQLAlchemy.
+
+Current implementation is suitable for demo purposes and moderate workloads.
 """
 
 from typing import Any
@@ -22,6 +29,15 @@ class WarehouseHook(BaseHook):
 
     Extends Airflow's BaseHook to provide PostgreSQL connection management
     with query execution, bulk inserts, and transaction support.
+
+    Connection Reuse:
+    - Connections are cached per hook instance and reused across method calls
+    - A single WarehouseHook instance will reuse the same connection
+    - Multiple hook instances will create separate connections (no pooling)
+
+    Production Note:
+    For high-concurrency workloads, consider using PostgresHook which provides
+    connection pooling via SQLAlchemy. This hook is optimized for demo clarity.
     """
 
     conn_name_attr = "warehouse_conn_id"
@@ -297,8 +313,22 @@ class WarehouseHook(BaseHook):
             raise
 
     def close(self) -> None:
-        """Close database connection if open."""
+        """
+        Close database connection if open.
+
+        Note: Connections are automatically closed when the hook instance
+        is garbage collected, but calling this explicitly is recommended
+        for long-running processes or when creating many hook instances.
+        """
         if self._connection and not self._connection.closed:
             self._connection.close()
             logger.debug("Warehouse connection closed")
             self._connection = None
+
+    def __del__(self) -> None:
+        """Cleanup: Close connection on instance destruction."""
+        try:
+            self.close()
+        except Exception:
+            # Suppress exceptions during cleanup
+            pass
