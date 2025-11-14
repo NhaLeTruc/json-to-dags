@@ -11,6 +11,7 @@ which provides built-in connection pooling via SQLAlchemy.
 Current implementation is suitable for demo purposes and moderate workloads.
 """
 
+import re
 from typing import Any
 
 import psycopg2
@@ -21,6 +22,11 @@ from src.utils.config_loader import get_config_loader
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# SQL identifier validation pattern: schema.table or table
+# Allows: alphanumeric, underscore, optional schema prefix
+# Examples: users, warehouse.dim_customers, staging.raw_data_2024
+_SQL_IDENTIFIER_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$")
 
 
 class WarehouseHook(BaseHook):
@@ -165,7 +171,7 @@ class WarehouseHook(BaseHook):
         Bulk insert records into table using execute_values.
 
         Args:
-            table: Table name (with schema if needed)
+            table: Table name (with schema if needed, e.g., "schema.table" or "table")
             records: List of record dicts with column: value pairs
             page_size: Number of records to insert per batch
 
@@ -173,9 +179,19 @@ class WarehouseHook(BaseHook):
             Total number of records inserted
 
         Raises:
-            ValueError: If records list is empty
+            ValueError: If records list is empty or table name is invalid
             Exception: If insert fails
         """
+        # Validate table name to prevent SQL injection
+        if not _SQL_IDENTIFIER_PATTERN.match(table):
+            msg = (
+                f"Invalid table name: '{table}'. "
+                "Table name must be alphanumeric with underscores, "
+                "optionally prefixed with schema (e.g., 'warehouse.sales' or 'users')"
+            )
+            logger.error(msg, table=table)
+            raise ValueError(msg)
+
         if not records:
             msg = "Cannot bulk insert empty records list"
             logger.error(msg)
