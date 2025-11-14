@@ -141,7 +141,7 @@ class DAGBuilder:
         dag_kwargs = {
             "dag_id": dag_id,
             "description": description,
-            "schedule": schedule_interval,  # Changed from schedule_interval to schedule (Airflow 3.x)
+            "schedule": schedule_interval,  # Using 'schedule' param (Airflow 2.4+, replaces schedule_interval)
             "start_date": start_date,
             "default_args": processed_default_args,
             "catchup": config.get("catchup", False),
