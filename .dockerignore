@@ -48,11 +48,13 @@ Dockerfile*
 .dockerignore
 docker-compose*.yml
 
-# Documentation
+# Documentation (but keep requirements files!)
 *.md
 docs/
 *.rst
 *.txt.bak
+!requirements.txt
+!requirements-dev.txt
 
 # IDE
 .vscode/
