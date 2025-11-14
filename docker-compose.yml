@@ -43,7 +43,7 @@ x-airflow-common:
     - ./dags:/opt/airflow/dags
     - ./src:/opt/airflow/src
     - ./tests:/opt/airflow/tests
-    # - ./logs:/opt/airflow/logs
+    - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
     - ./data:/opt/airflow/data
   user: "${AIRFLOW_UID:-50000}:0"
