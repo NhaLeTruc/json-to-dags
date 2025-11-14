@@ -1,11 +1,12 @@
 # ============================================================================
 # Apache Airflow ETL Demo Platform - Airflow Container
 # ============================================================================
-# Base: Official Apache Airflow image with Python 3.11
+# Base: Official Apache Airflow image with Python 3.12
 # Purpose: Extends base image with custom operators and dependencies
+# Migrated from 3.1.0 to 2.10.5 for stability (see docs/migration_plan.md)
 # ============================================================================
 
-FROM apache/airflow:3.1.0-python3.12
+FROM apache/airflow:2.10.5-python3.12
 
 # Switch to root for system-level installations
 USER root

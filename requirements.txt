@@ -1,9 +1,9 @@
 # Apache Airflow ETL Demo Platform - Production Dependencies
 # All dependencies pinned to specific versions for reproducibility
 
-# Core Airflow
-apache-airflow==3.1.0
-apache-airflow-providers-fab==3.0.0
+# Core Airflow (migrated from 3.1.0 to 2.10.5 for stability)
+apache-airflow==2.10.5
+apache-airflow-providers-fab==1.4.0
 apache-airflow-providers-postgres==5.14.0
 apache-airflow-providers-openlineage>=1.8.0
 
