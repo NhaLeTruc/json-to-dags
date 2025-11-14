@@ -10,6 +10,7 @@ apache-airflow-providers-openlineage>=1.8.0
 # Database
 psycopg2-binary==2.9.10
 SQLAlchemy==1.4.54
+pandas==2.2.0
 
 # Data Quality
 great-expectations==0.18.19
