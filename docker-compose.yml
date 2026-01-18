@@ -30,7 +30,8 @@ x-airflow-common:
     WAREHOUSE_USER: ${WAREHOUSE_USER:-warehouse_user}
     WAREHOUSE_PASSWORD: ${WAREHOUSE_PASSWORD:-warehouse_pass}
     # Airflow connection for warehouse (programmatic access)
-    AIRFLOW_CONN_WAREHOUSE_DEFAULT: postgresql://${WAREHOUSE_USER:-warehouse_user}:${WAREHOUSE_PASSWORD:-warehouse_pass}@${WAREHOUSE_HOST:-airflow-warehouse}:${WAREHOUSE_PORT:-5432}/${WAREHOUSE_DB:-warehouse}
+    # Connection ID "warehouse" matches the postgres_conn_id used in DAGs
+    AIRFLOW_CONN_WAREHOUSE: postgresql://${WAREHOUSE_USER:-warehouse_user}:${WAREHOUSE_PASSWORD:-warehouse_pass}@${WAREHOUSE_HOST:-airflow-warehouse}:${WAREHOUSE_PORT:-5432}/${WAREHOUSE_DB:-warehouse}
     SMTP_HOST: ${SMTP_HOST:-}
     SMTP_PORT: ${SMTP_PORT:-587}
     SMTP_USER: ${SMTP_USER:-}
@@ -39,6 +40,8 @@ x-airflow-common:
     TEAMS_WEBHOOK_URL: ${TEAMS_WEBHOOK_URL:-}
     TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
     TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+    # Install additional providers
+    _PIP_ADDITIONAL_REQUIREMENTS: apache-airflow-providers-postgres==5.13.1
   volumes:
     - ./dags:/opt/airflow/dags
     - ./src:/opt/airflow/src
@@ -120,6 +123,29 @@ services:
           --lastname User \
           --role Admin \
           --email admin@example.com
+        # Create filesystem connection for FileSensor (used by event-driven DAGs)
+        airflow connections add 'fs_default' \
+          --conn-type 'fs' \
+          --conn-extra '{"path": "/"}' \
+          2>/dev/null || echo "fs_default connection already exists"
+        # Create Spark connections for multi-cluster demo DAG
+        # These are placeholder connections - actual Spark clusters not included in demo
+        airflow connections add 'spark_standalone' \
+          --conn-type 'spark' \
+          --conn-host 'spark-master' \
+          --conn-port 7077 \
+          --conn-extra '{"spark_binary": "spark-submit", "deploy_mode": "client"}' \
+          2>/dev/null || echo "spark_standalone connection already exists"
+        airflow connections add 'spark_yarn' \
+          --conn-type 'spark' \
+          --conn-host 'yarn-resourcemanager' \
+          --conn-extra '{"spark_binary": "spark-submit", "deploy_mode": "cluster", "queue": "default"}' \
+          2>/dev/null || echo "spark_yarn connection already exists"
+        airflow connections add 'spark_k8s' \
+          --conn-type 'spark' \
+          --conn-host 'kubernetes.default.svc' \
+          --conn-extra '{"spark_binary": "spark-submit", "namespace": "spark-jobs"}' \
+          2>/dev/null || echo "spark_k8s connection already exists"
         echo "Airflow initialization complete"
     environment:
       <<: *airflow-common-env
@@ -163,36 +189,16 @@ services:
       - airflow-network
 
   # ============================================================================
-  # Airflow - API Server (replaces webserver in Airflow 3.0+)
+  # Airflow - Web Server
   # ============================================================================
   airflow-webserver:
     <<: *airflow-common
     container_name: airflow-webserver
-    command: api-server
+    command: webserver
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    restart: always
-    depends_on:
-      airflow-init:
-        condition: service_completed_successfully
-    networks:
-      - airflow-network
-
-  # ============================================================================
-  # Airflow - DAG Processor (required for DAG parsing in Airflow 3.0+)
-  # ============================================================================
-  airflow-dag-processor:
-    <<: *airflow-common
-    container_name: airflow-dag-processor
-    command: dag-processor
-    healthcheck:
-      test: ["CMD-SHELL", "airflow jobs check --job-type DagProcessorJob --hostname $(hostname)"]
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -224,8 +230,6 @@ services:
       airflow-db-fix:
         condition: service_completed_successfully
       airflow-webserver:
-        condition: service_healthy
-      airflow-dag-processor:
         condition: service_healthy
     environment:
       <<: *airflow-common-env

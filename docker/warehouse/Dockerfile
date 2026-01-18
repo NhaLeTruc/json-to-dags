@@ -14,8 +14,12 @@ ENV POSTGRES_PASSWORD=warehouse_pass
 
 # Copy initialization scripts
 # These run automatically on first container startup in alphabetical order
-COPY ../../src/warehouse/schema.sql /docker-entrypoint-initdb.d/01-schema.sql
-COPY ../../src/warehouse/seed_data.sql /docker-entrypoint-initdb.d/02-seed_data.sql
+# Paths are relative to build context (project root)
+# Base schema and seed data use 000x prefix to run before migrations (001_, 002_, etc.)
+COPY src/warehouse/schema.sql /docker-entrypoint-initdb.d/000a-schema.sql
+COPY src/warehouse/seed_data.sql /docker-entrypoint-initdb.d/000b-seed_data.sql
+# Copy all migrations - new migrations will be automatically included
+COPY src/warehouse/migrations/ /docker-entrypoint-initdb.d/
 
 # Create migrations directory for future use
 RUN mkdir -p /migrations
