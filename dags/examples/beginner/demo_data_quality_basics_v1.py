@@ -69,16 +69,18 @@ load_customer_data = PostgresOperator(
     sql="""
     -- Simulate loading customer data
     -- In real scenario, this would be your ETL load task
-    INSERT INTO warehouse.dim_customer (customer_id, customer_name, email, created_date)
+    INSERT INTO warehouse.dim_customer (customer_key, customer_name, email, country, segment)
     SELECT
-        generate_series(1, 100) AS customer_id,
-        'Customer ' || generate_series(1, 100) AS customer_name,
-        'customer' || generate_series(1, 100) || '@example.com' AS email,
-        '{{ ds }}'::date AS created_date
-    ON CONFLICT (customer_id) DO UPDATE
+        'CUST-' || LPAD(gs::text, 3, '0') AS customer_key,
+        'Customer ' || gs AS customer_name,
+        'customer' || gs || '@example.com' AS email,
+        CASE WHEN gs % 3 = 0 THEN 'USA' WHEN gs % 3 = 1 THEN 'Canada' ELSE 'UK' END AS country,
+        CASE WHEN gs % 3 = 0 THEN 'Enterprise' WHEN gs % 3 = 1 THEN 'SMB' ELSE 'Consumer' END AS segment
+    FROM generate_series(1, 100) AS gs
+    ON CONFLICT (customer_key) DO UPDATE
     SET customer_name = EXCLUDED.customer_name,
         email = EXCLUDED.email,
-        last_modified_date = CURRENT_TIMESTAMP;
+        updated_at = CURRENT_TIMESTAMP;
     """,
     dag=dag,
 )
@@ -90,25 +92,18 @@ validate_schema = SchemaValidator(
     table_name="warehouse.dim_customer",
     expected_schema={
         "columns": [
-            {"column_name": "customer_id", "data_type": "integer", "nullable": False},
-            {"column_name": "customer_name", "data_type": "character varying", "nullable": True},
-            {"column_name": "email", "data_type": "character varying", "nullable": True},
-            {"column_name": "phone", "data_type": "character varying", "nullable": True},
-            {"column_name": "address", "data_type": "character varying", "nullable": True},
-            {"column_name": "city", "data_type": "character varying", "nullable": True},
-            {"column_name": "state", "data_type": "character varying", "nullable": True},
-            {"column_name": "zip_code", "data_type": "character varying", "nullable": True},
-            {"column_name": "country", "data_type": "character varying", "nullable": True},
-            {"column_name": "created_date", "data_type": "date", "nullable": True},
-            {
-                "column_name": "last_modified_date",
-                "data_type": "timestamp without time zone",
-                "nullable": True,
-            },
+            {"name": "customer_id", "type": "INTEGER", "nullable": False},
+            {"name": "customer_key", "type": "VARCHAR", "nullable": False},
+            {"name": "customer_name", "type": "VARCHAR", "nullable": False},
+            {"name": "email", "type": "VARCHAR", "nullable": True},
+            {"name": "country", "type": "VARCHAR", "nullable": True},
+            {"name": "segment", "type": "VARCHAR", "nullable": True},
+            {"name": "created_at", "type": "TIMESTAMP", "nullable": False},
+            {"name": "updated_at", "type": "TIMESTAMP", "nullable": False},
         ]
     },
     severity=QualitySeverity.CRITICAL,  # Fail pipeline on schema mismatch
-    allow_extra_columns=True,  # Changed from check_extra_columns to allow_extra_columns (correct parameter name)
+    allow_extra_columns=True,
     dag=dag,
 )
 

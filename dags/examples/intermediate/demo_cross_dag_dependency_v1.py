@@ -34,14 +34,40 @@ import logging
 from datetime import datetime, timedelta
 
 from airflow import DAG
+from airflow.models import DagRun
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import BranchPythonOperator, PythonOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.sensors.external_task import ExternalTaskSensor
+from airflow.utils.session import provide_session
 from airflow.utils.state import DagRunState
 from airflow.utils.trigger_rule import TriggerRule
 
 logger = logging.getLogger(__name__)
+
+
+@provide_session
+def get_most_recent_dag_run(dt, session=None):
+    """
+    Get the execution date of the most recent successful run of the upstream DAG.
+
+    This allows the ExternalTaskSensor to find a matching run even when this DAG
+    is triggered manually with a different execution date.
+    """
+    dag_runs = (
+        session.query(DagRun)
+        .filter(
+            DagRun.dag_id == "demo_simple_extract_load_v1",
+            DagRun.state == DagRunState.SUCCESS,
+        )
+        .order_by(DagRun.execution_date.desc())
+        .first()
+    )
+    if dag_runs:
+        return dag_runs.execution_date
+    # Return a date far in the past if no successful runs exist
+    # The sensor will timeout, but with a clearer reason
+    return datetime(2000, 1, 1)
 
 
 # Default arguments
@@ -217,20 +243,24 @@ with DAG(
 
     # SENSOR: Wait for upstream DAG to complete
     # This sensor waits for demo_simple_extract_load_v1 to finish
+    # Uses execution_date_fn to find the most recent successful run instead of
+    # requiring an exact execution date match (which fails for manual triggers)
     wait_for_upstream = ExternalTaskSensor(
         task_id="wait_for_upstream_dag",
         external_dag_id="demo_simple_extract_load_v1",
         external_task_id=None,  # Wait for entire DAG to complete
+        execution_date_fn=get_most_recent_dag_run,
         allowed_states=[DagRunState.SUCCESS],
-        failed_states=[DagRunState.FAILED],  # Removed SKIPPED as it doesn't exist in DagRunState
+        failed_states=[DagRunState.FAILED],
         mode="poke",
-        timeout=600,  # 10 minutes timeout
-        poke_interval=30,  # Check every 30 seconds
+        timeout=60,  # 1 minute timeout for demo
+        poke_interval=10,  # Check every 10 seconds
         doc_md="""
         Wait for upstream DAG (demo_simple_extract_load_v1) to complete successfully.
 
-        This sensor polls the upstream DAG's state and blocks until it reaches
-        a success state. If the upstream DAG fails, this sensor will also fail.
+        This sensor uses execution_date_fn to find the most recent successful run
+        of the upstream DAG, rather than requiring an exact execution date match.
+        This allows the DAG to work when triggered manually.
         """,
     )
 
