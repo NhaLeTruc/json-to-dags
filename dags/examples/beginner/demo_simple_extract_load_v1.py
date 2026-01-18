@@ -54,10 +54,22 @@ dag = DAG(
 )
 
 # Task 1: Truncate staging table for idempotent full refresh
+# Creates staging table if it doesn't exist first
 truncate_staging = PostgresOperator(
     task_id="truncate_staging_table",
     postgres_conn_id="warehouse",
     sql="""
+    -- Create staging table if it doesn't exist
+    CREATE TABLE IF NOT EXISTS staging.dim_customer_staging (
+        customer_id INTEGER NOT NULL,
+        customer_key VARCHAR(50) NOT NULL,
+        customer_name VARCHAR(255) NOT NULL,
+        email VARCHAR(255),
+        country VARCHAR(100),
+        segment VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
     TRUNCATE TABLE staging.dim_customer_staging;
     """,
     dag=dag,
@@ -70,31 +82,25 @@ extract_load_customers = PostgresOperator(
     sql="""
     INSERT INTO staging.dim_customer_staging (
         customer_id,
+        customer_key,
         customer_name,
         email,
-        phone,
-        address,
-        city,
-        state,
-        zip_code,
         country,
-        created_date,
-        last_modified_date
+        segment,
+        created_at,
+        updated_at
     )
     SELECT
         customer_id,
+        customer_key,
         customer_name,
         email,
-        phone,
-        address,
-        city,
-        state,
-        zip_code,
         country,
-        created_date,
-        last_modified_date
+        segment,
+        created_at,
+        updated_at
     FROM warehouse.dim_customer
-    WHERE last_modified_date <= '{{ ds }}'::date;
+    WHERE updated_at <= '{{ ds }}'::date + INTERVAL '1 day';
     """,
     dag=dag,
 )
@@ -104,19 +110,28 @@ log_extraction_stats = PostgresOperator(
     task_id="log_extraction_stats",
     postgres_conn_id="warehouse",
     sql="""
+    -- Log extraction stats to etl_metadata.load_log (created by migration 002)
     INSERT INTO etl_metadata.load_log (
         pipeline_name,
-        execution_date,
         table_name,
-        rows_loaded,
-        load_timestamp
+        execution_date,
+        load_type,
+        records_extracted,
+        records_loaded,
+        records_rejected,
+        start_time,
+        status
     )
     SELECT
         'demo_simple_extract_load_v1',
-        '{{ ds }}'::date,
         'staging.dim_customer_staging',
-        COUNT(*),
-        CURRENT_TIMESTAMP
+        '{{ ts }}'::timestamp,
+        'full',
+        COUNT(*)::integer,
+        COUNT(*)::integer,
+        0,
+        CURRENT_TIMESTAMP,
+        'success'
     FROM staging.dim_customer_staging;
     """,
     dag=dag,

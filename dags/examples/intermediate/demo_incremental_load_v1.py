@@ -48,12 +48,12 @@ logger = get_logger(__name__)
 # Default arguments
 default_args = {
     "owner": "etl_team",
-    "depends_on_past": True,  # Ensure previous runs completed
+    "depends_on_past": False,  # Disabled for demo
     "wait_for_downstream": False,
     "email_on_failure": True,
     "email_on_retry": False,
-    "retries": 3,
-    "retry_delay": timedelta(minutes=5),
+    "retries": 1,
+    "retry_delay": timedelta(minutes=1),
 }
 
 # DAG definition
@@ -118,49 +118,41 @@ load_incremental_sales = PostgresOperator(
     postgres_conn_id="warehouse",
     sql="""
     -- Insert new or modified sales transactions
+    -- Maps source.sales_transactions to warehouse.fact_sales
     INSERT INTO warehouse.fact_sales (
-        sales_id,
+        transaction_id,
         customer_id,
         product_id,
-        date_id,
+        sale_date_id,
         quantity,
         unit_price,
-        total_amount,
         discount,
-        tax_amount,
-        sale_timestamp,
-        last_modified_date
+        total_amount
     )
     SELECT
-        s.sales_id,
+        'TXN-' || s.sales_id::text AS transaction_id,
         s.customer_id,
         s.product_id,
-        s.date_id,
+        s.date_id AS sale_date_id,
         s.quantity,
         s.unit_price,
-        s.total_amount,
         s.discount,
-        s.tax_amount,
-        s.sale_timestamp,
-        s.last_modified_date
+        s.total_amount
     FROM source.sales_transactions s
     WHERE s.last_modified_date > COALESCE(
-        '{{ task_instance.xcom_pull(task_ids="get_last_watermark", key="last_watermark") }}'::timestamp,
+        NULLIF('{{ task_instance.xcom_pull(task_ids="get_last_watermark", key="last_watermark") }}', 'None')::timestamp,
         '1970-01-01'::timestamp  -- For initial load
     )
     AND s.last_modified_date <= '{{ execution_date }}'::timestamp
-    ON CONFLICT (sales_id) DO UPDATE
+    ON CONFLICT (transaction_id) DO UPDATE
     SET
         customer_id = EXCLUDED.customer_id,
         product_id = EXCLUDED.product_id,
-        date_id = EXCLUDED.date_id,
+        sale_date_id = EXCLUDED.sale_date_id,
         quantity = EXCLUDED.quantity,
         unit_price = EXCLUDED.unit_price,
-        total_amount = EXCLUDED.total_amount,
         discount = EXCLUDED.discount,
-        tax_amount = EXCLUDED.tax_amount,
-        sale_timestamp = EXCLUDED.sale_timestamp,
-        last_modified_date = EXCLUDED.last_modified_date;
+        total_amount = EXCLUDED.total_amount;
     """,
     dag=dag,
 )
@@ -171,13 +163,14 @@ def calculate_new_watermark(**context):
     """Calculate the new watermark value for this run."""
     hook = WarehouseHook(postgres_conn_id="warehouse")
 
+    # Get max last_modified_date from source that was processed
     query = """
     SELECT MAX(last_modified_date) AS new_watermark
-    FROM warehouse.fact_sales
-    WHERE last_modified_date <= '{{ execution_date }}'::timestamp;
+    FROM source.sales_transactions
+    WHERE last_modified_date <= %s::timestamp;
     """
 
-    result = hook.get_first(query)
+    result = hook.get_first(query, parameters=(str(context["execution_date"]),))
     new_watermark = result[0] if result and result[0] else context["execution_date"]
 
     logger.info(
@@ -215,15 +208,13 @@ save_watermark = PostgresOperator(
     SELECT
         'demo_incremental_load_v1',
         'warehouse.fact_sales',
-        '{{ task_instance.xcom_pull(task_ids="calculate_new_watermark", key="new_watermark") }}'::timestamp,
+        COALESCE(
+            NULLIF('{{ task_instance.xcom_pull(task_ids="calculate_new_watermark", key="new_watermark") }}', 'None')::timestamp,
+            '{{ execution_date }}'::timestamp
+        ),
         '{{ execution_date }}'::timestamp,
         'success',
-        (SELECT COUNT(*) FROM warehouse.fact_sales
-         WHERE last_modified_date > COALESCE(
-             '{{ task_instance.xcom_pull(task_ids="get_last_watermark", key="last_watermark") }}'::timestamp,
-             '1970-01-01'::timestamp
-         )
-         AND last_modified_date <= '{{ execution_date }}'::timestamp),
+        (SELECT COUNT(*) FROM warehouse.fact_sales),
         CURRENT_TIMESTAMP;
     """,
     dag=dag,
@@ -272,21 +263,21 @@ verify_no_duplicates = PostgresOperator(
     task_id="verify_no_duplicates",
     postgres_conn_id="warehouse",
     sql="""
-    -- Verify no duplicate sales_id exists
+    -- Verify no duplicate transaction_id exists
     DO $$
     DECLARE
         duplicate_count INTEGER;
     BEGIN
         SELECT COUNT(*) INTO duplicate_count
         FROM (
-            SELECT sales_id, COUNT(*) AS cnt
+            SELECT transaction_id, COUNT(*) AS cnt
             FROM warehouse.fact_sales
-            GROUP BY sales_id
+            GROUP BY transaction_id
             HAVING COUNT(*) > 1
         ) duplicates;
 
         IF duplicate_count > 0 THEN
-            RAISE EXCEPTION 'Found % duplicate sales_id in fact_sales table', duplicate_count;
+            RAISE EXCEPTION 'Found % duplicate transaction_id in fact_sales table', duplicate_count;
         END IF;
 
         RAISE NOTICE 'No duplicates found - idempotency verified';
