@@ -4,6 +4,7 @@ Spark Kubernetes Operator for Apache Airflow.
 Custom operator for submitting Spark jobs to a Kubernetes cluster.
 """
 
+import os
 from typing import Any
 
 from airflow.exceptions import AirflowException
@@ -13,6 +14,9 @@ from src.hooks.spark_hook import SparkHook
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# Enable simulation mode when no Spark cluster is available (demo environments)
+SPARK_SIMULATION_MODE = os.environ.get("SPARK_SIMULATION_MODE", "true").lower() == "true"
 
 
 class SparkKubernetesOperator(BaseOperator):
@@ -116,6 +120,21 @@ class SparkKubernetesOperator(BaseOperator):
         logger.info(f"Executing Spark Kubernetes job: {self.name}")
         logger.info(f"Application: {self.application}")
         logger.info(f"Namespace: {self.namespace}")
+
+        # Simulation mode for demo environments without actual Kubernetes cluster
+        if SPARK_SIMULATION_MODE:
+            import time
+            self._job_id = f"sim-k8s-spark-{self.name}-{int(time.time())}"
+            logger.info(f"[SIMULATION MODE] Spark Kubernetes job simulated: {self.name}")
+            logger.info(f"[SIMULATION MODE] Would submit to namespace: {self.namespace}")
+            logger.info(f"[SIMULATION MODE] Application: {self.application}")
+            logger.info(f"[SIMULATION MODE] Image: {self.image}")
+            logger.info(f"[SIMULATION MODE] Service account: {self.kubernetes_service_account}")
+            logger.info(f"[SIMULATION MODE] Executor memory: {self.executor_memory}")
+            logger.info(f"[SIMULATION MODE] Num executors: {self.num_executors}")
+            context["task_instance"].xcom_push(key="k8s_spark_job_id", value=self._job_id)
+            context["task_instance"].xcom_push(key="simulation_mode", value=True)
+            return self._job_id
 
         # Initialize hook
         self._hook = SparkHook(conn_id=self.conn_id, verbose=self.verbose)
