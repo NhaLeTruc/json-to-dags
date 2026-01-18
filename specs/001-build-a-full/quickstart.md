@@ -44,10 +44,10 @@ cd apache-airflow-etl-demo
 cp .env.example .env
 
 # Start all services (Airflow, PostgreSQL, mock warehouse)
-docker-compose up -d
+docker compose up -d
 
 # Wait for services to be healthy (usually 2-3 minutes)
-docker-compose ps
+docker compose ps
 ```
 
 **Expected Output**:
@@ -116,15 +116,15 @@ Verify all services are running correctly:
 
 ```bash
 # Check service status
-docker-compose ps
+docker compose ps
 
 # View logs for troubleshooting
-docker-compose logs airflow-webserver
-docker-compose logs airflow-scheduler
-docker-compose logs airflow-warehouse
+docker compose logs airflow-webserver
+docker compose logs airflow-scheduler
+docker compose logs airflow-warehouse
 
 # Check Airflow scheduler is processing DAGs
-docker-compose logs -f airflow-scheduler | grep "DAG bag size"
+docker compose logs -f airflow-scheduler | grep "DAG bag size"
 ```
 
 **Expected Log Output**:
@@ -292,7 +292,7 @@ with open('/opt/airflow/dags/config/my_first_dag.json') as f:
 
 # Wait for DAG to appear (up to 30 seconds for scheduler refresh)
 # Or restart scheduler to force reload
-docker-compose restart airflow-scheduler
+docker compose restart airflow-scheduler
 ```
 
 ### Step 3: Verify DAG Appears in UI
@@ -377,7 +377,7 @@ docker exec airflow-scheduler airflow tasks logs \
     demo_simple_extract_load_v1 extract_sales_data 2025-10-15
 
 # Follow live logs
-docker-compose logs -f airflow-scheduler
+docker compose logs -f airflow-scheduler
 ```
 
 ### Check Data Quality Results
@@ -462,10 +462,10 @@ docker exec airflow-scheduler airflow dags backfill \
 
 ```bash
 # Stop all services and remove volumes (DELETES ALL DATA)
-docker-compose down -v
+docker compose down -v
 
 # Restart with fresh state
-docker-compose up -d
+docker compose up -d
 
 # Wait for services to initialize
 sleep 120
@@ -508,17 +508,17 @@ sleep 120
 **Solutions**:
 ```bash
 # Check if webserver is running
-docker-compose ps airflow-webserver
+docker compose ps airflow-webserver
 
 # Check logs for errors
-docker-compose logs airflow-webserver | tail -50
+docker compose logs airflow-webserver | tail -50
 
 # Verify port 8080 is not in use by another service
 lsof -i :8080  # macOS/Linux
 netstat -ano | findstr :8080  # Windows
 
 # Restart webserver
-docker-compose restart airflow-webserver
+docker compose restart airflow-webserver
 ```
 
 ---
@@ -540,7 +540,7 @@ print(dag_bag.import_errors)
 docker exec airflow-scheduler ls -la /opt/airflow/dags/config/
 
 # Force scheduler to reprocess DAGs
-docker-compose restart airflow-scheduler
+docker compose restart airflow-scheduler
 ```
 
 ---

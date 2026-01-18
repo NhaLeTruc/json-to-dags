@@ -13,8 +13,8 @@ Current system has Python 3.12, which is not compatible with Airflow 2.8.1. To r
 The Docker environment is configured with Python 3.11:
 
 ```bash
-docker-compose up -d
-docker-compose exec airflow-scheduler pytest tests/
+docker compose up -d
+docker compose exec airflow-scheduler pytest tests/
 ```
 
 #### Option 2: Use pyenv to install Python 3.11
@@ -221,12 +221,12 @@ If you see `ModuleNotFoundError: No module named 'airflow'`:
 
 ```bash
 # Rebuild containers
-docker-compose down -v
-docker-compose build --no-cache
-docker-compose up -d
+docker compose down -v
+docker compose build --no-cache
+docker compose up -d
 
 # Check logs
-docker-compose logs airflow-scheduler
+docker compose logs airflow-scheduler
 ```
 
 ### Database Connection Errors
@@ -234,9 +234,9 @@ docker-compose logs airflow-scheduler
 Ensure PostgreSQL containers are healthy:
 
 ```bash
-docker-compose ps
-docker-compose logs airflow-warehouse
-docker-compose logs airflow-postgres
+docker compose ps
+docker compose logs airflow-warehouse
+docker compose logs airflow-postgres
 ```
 
 ## Test Development Workflow

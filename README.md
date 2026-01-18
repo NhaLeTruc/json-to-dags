@@ -223,17 +223,17 @@ ruff check --fix .
 
 ```bash
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f airflow-scheduler
+docker compose logs -f airflow-scheduler
 
 # Stop services
-docker-compose down
+docker compose down
 
 # Reset environment (deletes all data)
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 ```
 
 ## Example DAG Gallery
