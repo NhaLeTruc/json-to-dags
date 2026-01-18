@@ -96,9 +96,14 @@ VALUES ('002_etl_metadata_schema', 'ETL metadata schema with watermarks, SCD log
 ON CONFLICT (migration_name) DO NOTHING;
 
 -- Grant permissions to warehouse user
+GRANT USAGE ON SCHEMA etl_metadata TO warehouse_user;
 GRANT ALL PRIVILEGES ON SCHEMA etl_metadata TO warehouse_user;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA etl_metadata TO warehouse_user;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA etl_metadata TO warehouse_user;
+
+-- Set default privileges for future tables in etl_metadata schema
+ALTER DEFAULT PRIVILEGES IN SCHEMA etl_metadata GRANT ALL ON TABLES TO warehouse_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA etl_metadata GRANT ALL ON SEQUENCES TO warehouse_user;
 
 -- Success message
 DO $$

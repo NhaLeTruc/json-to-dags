@@ -155,10 +155,12 @@ SELECT
     END AS total_amount
 FROM sales_base;
 
--- Add some duplicate transaction_ids for uniqueness testing (quality issue)
+-- Attempt to add duplicate transaction_ids for uniqueness testing
+-- With UNIQUE constraint on transaction_id, duplicates are rejected (ON CONFLICT DO NOTHING)
+-- This demonstrates proper data integrity enforcement
 INSERT INTO warehouse.fact_sales (transaction_id, customer_id, product_id, sale_date_id, quantity, unit_price, discount, total_amount)
 SELECT
-    'TXN-' || LPAD((i % 1000)::TEXT, 8, '0') AS transaction_id,  -- Duplicate existing transactions
+    'TXN-' || LPAD((i % 1000)::TEXT, 8, '0') AS transaction_id,  -- Attempts duplicate transactions
     1 + (i % 1000) AS customer_id,
     1 + ((i * 11) % 500) AS product_id,
     TO_CHAR('2020-01-01'::DATE + (i % 365) * INTERVAL '1 day', 'YYYYMMDD')::INTEGER AS sale_date_id,
@@ -166,7 +168,8 @@ SELECT
     (15 + (i % 30) * 5.0)::DECIMAL(10,2) AS unit_price,
     ((i % 10) * 2.0)::DECIMAL(10,2) AS discount,
     ((1 + (i % 5)) * (15 + (i % 30) * 5.0) - ((i % 10) * 2.0))::DECIMAL(10,2) AS total_amount
-FROM generate_series(1, 3000) AS i;  -- 3% duplicates
+FROM generate_series(1, 3000) AS i
+ON CONFLICT (transaction_id) DO NOTHING;  -- Duplicates silently rejected
 
 -- ============================================================================
 -- Staging: Sales (sample staging data)

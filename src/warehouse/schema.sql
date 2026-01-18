@@ -102,7 +102,7 @@ CREATE TABLE warehouse.fact_sales (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_fact_sales_transaction ON warehouse.fact_sales(transaction_id);
+CREATE UNIQUE INDEX idx_fact_sales_transaction ON warehouse.fact_sales(transaction_id);
 CREATE INDEX idx_fact_sales_customer ON warehouse.fact_sales(customer_id);
 CREATE INDEX idx_fact_sales_product ON warehouse.fact_sales(product_id);
 CREATE INDEX idx_fact_sales_date ON warehouse.fact_sales(sale_date_id);
