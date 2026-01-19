@@ -6,6 +6,7 @@ exponential, linear, and fixed.
 """
 
 from datetime import timedelta
+from typing import Any
 
 from src.utils.logger import get_logger
 
@@ -246,7 +247,7 @@ def create_retry_config(
     strategy: str = "exponential",
     base_delay: int = 60,
     max_delay: int | None = None,
-) -> dict[str, any]:
+) -> dict[str, Any]:
     """
     Create retry configuration dict for Airflow task default_args.
 
