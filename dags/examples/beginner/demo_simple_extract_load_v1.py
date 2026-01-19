@@ -97,10 +97,10 @@ extract_load_customers = PostgresOperator(
         email,
         country,
         segment,
-        created_at,
-        updated_at
-    FROM warehouse.dim_customer
-    WHERE updated_at <= '{{ ds }}'::date + INTERVAL '1 day';
+        CURRENT_TIMESTAMP AS created_at,
+        extract_timestamp AS updated_at
+    FROM source.dim_customer
+    WHERE extract_timestamp <= '{{ ds }}'::date + INTERVAL '1 day';
     """,
     dag=dag,
 )

@@ -230,10 +230,10 @@ def log_load_stats(**context):
 
     hook = WarehouseHook(postgres_conn_id="warehouse")
 
-    # Get record count for this run
+    # Get record count for this run (query source table which has last_modified_date)
     query = """
     SELECT COUNT(*) AS records_loaded
-    FROM warehouse.fact_sales
+    FROM source.sales_transactions
     WHERE last_modified_date > COALESCE(%s::timestamp, '1970-01-01'::timestamp)
       AND last_modified_date <= %s::timestamp;
     """

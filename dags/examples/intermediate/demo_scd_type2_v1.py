@@ -112,7 +112,8 @@ scd_type2_processing = PostgresOperator(
 
     -- Step 1: Identify changed records
     -- Records that exist in staging but differ from current warehouse version
-    CREATE TEMP TABLE IF NOT EXISTS changed_customers AS
+    DROP TABLE IF EXISTS changed_customers;
+    CREATE TEMP TABLE changed_customers AS
     SELECT
         stg.customer_id,
         stg.customer_key,
