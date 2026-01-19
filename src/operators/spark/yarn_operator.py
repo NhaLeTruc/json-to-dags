@@ -39,7 +39,7 @@ class SparkYarnOperator(BaseOperator):
     """
 
     template_fields = ("application", "application_args", "conf", "name")  # Removed 'queue' - reserved by Airflow executor
-    template_ext = (".py", ".jar")
+    # Note: Do NOT set template_ext to .py/.jar - these are Spark app paths, not Jinja templates
     ui_color = "#d4a76a"  # Brown/tan for YARN
 
 

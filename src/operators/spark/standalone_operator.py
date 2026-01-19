@@ -39,7 +39,7 @@ class SparkStandaloneOperator(BaseOperator):
     """
 
     template_fields = ("application", "application_args", "conf", "name")
-    template_ext = (".py", ".jar")
+    # Note: Do NOT set template_ext to .py/.jar - these are Spark app paths, not Jinja templates
     ui_color = "#e47128"  # Orange for Spark Standalone
 
 

@@ -44,7 +44,7 @@ class SparkKubernetesOperator(BaseOperator):
     """
 
     template_fields = ("application", "application_args", "namespace", "image", "conf", "name")
-    template_ext = (".py", ".jar")
+    # Note: Do NOT set template_ext to .py/.jar - these are Spark app paths, not Jinja templates
     ui_color = "#326ce5"  # Blue for Kubernetes
 
 
@@ -78,7 +78,7 @@ class SparkKubernetesOperator(BaseOperator):
         if not application:
             raise ValueError("application parameter is required")
         if not namespace:
-            raise TypeError("namespace parameter is required")
+            raise ValueError("namespace parameter is required")
 
         # Validate cleanup policy
         valid_policies = ["OnSuccess", "OnFailure", "Never"]
