@@ -231,6 +231,29 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA warehouse GRANT ALL ON SEQUENCES TO warehouse
 ALTER DEFAULT PRIVILEGES IN SCHEMA staging GRANT ALL ON SEQUENCES TO warehouse_user;
 
 -- ============================================================================
+-- Migration Tracking Table
+-- ============================================================================
+
+-- Track applied migrations for incremental migration support
+CREATE TABLE IF NOT EXISTS warehouse.schema_migrations (
+    migration_id SERIAL PRIMARY KEY,
+    migration_name VARCHAR(255) NOT NULL UNIQUE,
+    applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    description TEXT,
+    checksum VARCHAR(64)
+);
+
+CREATE INDEX IF NOT EXISTS idx_schema_migrations_name ON warehouse.schema_migrations(migration_name);
+
+COMMENT ON TABLE warehouse.schema_migrations IS 'Tracks applied database migrations for incremental updates';
+COMMENT ON COLUMN warehouse.schema_migrations.checksum IS 'MD5 hash of migration file for change detection';
+
+-- Record base schema as a migration
+INSERT INTO warehouse.schema_migrations (migration_name, description)
+VALUES ('000_base_schema', 'Base warehouse schema with dimensions, facts, and operational tables')
+ON CONFLICT (migration_name) DO NOTHING;
+
+-- ============================================================================
 -- Schema Ready
 -- ============================================================================
 

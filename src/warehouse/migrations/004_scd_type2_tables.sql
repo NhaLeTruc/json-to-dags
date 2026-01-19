@@ -5,6 +5,7 @@
 -- Author: Airflow ETL Demo Team
 -- Date: 2025-10-23
 -- Version: 1.0.0
+-- Idempotent: Yes - safe to re-run
 -- ============================================================================
 
 -- ============================================================================
@@ -29,10 +30,10 @@ CREATE TABLE IF NOT EXISTS warehouse.dim_customer_scd2 (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_dim_customer_scd2_customer_id ON warehouse.dim_customer_scd2(customer_id);
-CREATE INDEX idx_dim_customer_scd2_is_current ON warehouse.dim_customer_scd2(is_current) WHERE is_current = TRUE;
-CREATE INDEX idx_dim_customer_scd2_valid_dates ON warehouse.dim_customer_scd2(valid_from, valid_to);
-CREATE INDEX idx_dim_customer_scd2_hash ON warehouse.dim_customer_scd2(record_hash);
+CREATE INDEX IF NOT EXISTS idx_dim_customer_scd2_customer_id ON warehouse.dim_customer_scd2(customer_id);
+CREATE INDEX IF NOT EXISTS idx_dim_customer_scd2_is_current ON warehouse.dim_customer_scd2(is_current) WHERE is_current = TRUE;
+CREATE INDEX IF NOT EXISTS idx_dim_customer_scd2_valid_dates ON warehouse.dim_customer_scd2(valid_from, valid_to);
+CREATE INDEX IF NOT EXISTS idx_dim_customer_scd2_hash ON warehouse.dim_customer_scd2(record_hash);
 
 COMMENT ON TABLE warehouse.dim_customer_scd2 IS 'SCD Type 2 customer dimension with full change history';
 COMMENT ON COLUMN warehouse.dim_customer_scd2.surrogate_key IS 'Auto-generated surrogate key for each version';
@@ -59,7 +60,7 @@ CREATE TABLE IF NOT EXISTS staging.dim_customer_scd2_staging (
     load_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_staging_scd2_customer_id ON staging.dim_customer_scd2_staging(customer_id);
+CREATE INDEX IF NOT EXISTS idx_staging_scd2_customer_id ON staging.dim_customer_scd2_staging(customer_id);
 
 COMMENT ON TABLE staging.dim_customer_scd2_staging IS 'Staging table for SCD Type 2 customer dimension processing';
 

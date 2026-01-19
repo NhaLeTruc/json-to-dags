@@ -5,6 +5,7 @@
 -- Author: Airflow ETL Demo Team
 -- Date: 2025-10-23
 -- Version: 1.0.0
+-- Idempotent: Yes - safe to re-run
 -- ============================================================================
 
 -- Create ETL metadata schema
@@ -28,9 +29,9 @@ CREATE TABLE IF NOT EXISTS etl_metadata.incremental_watermarks (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_incremental_watermarks_pipeline ON etl_metadata.incremental_watermarks(pipeline_name, table_name);
-CREATE INDEX idx_incremental_watermarks_status ON etl_metadata.incremental_watermarks(status);
-CREATE INDEX idx_incremental_watermarks_execution_date ON etl_metadata.incremental_watermarks(execution_date);
+CREATE INDEX IF NOT EXISTS idx_incremental_watermarks_pipeline ON etl_metadata.incremental_watermarks(pipeline_name, table_name);
+CREATE INDEX IF NOT EXISTS idx_incremental_watermarks_status ON etl_metadata.incremental_watermarks(status);
+CREATE INDEX IF NOT EXISTS idx_incremental_watermarks_execution_date ON etl_metadata.incremental_watermarks(execution_date);
 
 COMMENT ON TABLE etl_metadata.incremental_watermarks IS 'Tracks watermarks for incremental ETL loads';
 COMMENT ON COLUMN etl_metadata.incremental_watermarks.watermark_value IS 'The high water mark timestamp for this load';
@@ -53,9 +54,9 @@ CREATE TABLE IF NOT EXISTS etl_metadata.scd_processing_log (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_scd_processing_log_pipeline ON etl_metadata.scd_processing_log(pipeline_name, table_name);
-CREATE INDEX idx_scd_processing_log_execution_date ON etl_metadata.scd_processing_log(execution_date);
-CREATE INDEX idx_scd_processing_log_status ON etl_metadata.scd_processing_log(status);
+CREATE INDEX IF NOT EXISTS idx_scd_processing_log_pipeline ON etl_metadata.scd_processing_log(pipeline_name, table_name);
+CREATE INDEX IF NOT EXISTS idx_scd_processing_log_execution_date ON etl_metadata.scd_processing_log(execution_date);
+CREATE INDEX IF NOT EXISTS idx_scd_processing_log_status ON etl_metadata.scd_processing_log(status);
 
 COMMENT ON TABLE etl_metadata.scd_processing_log IS 'Tracks SCD Type 2 dimension processing statistics';
 COMMENT ON COLUMN etl_metadata.scd_processing_log.new_records IS 'Number of new dimension records inserted';
@@ -81,10 +82,10 @@ CREATE TABLE IF NOT EXISTS etl_metadata.load_log (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_load_log_pipeline ON etl_metadata.load_log(pipeline_name);
-CREATE INDEX idx_load_log_execution_date ON etl_metadata.load_log(execution_date);
-CREATE INDEX idx_load_log_status ON etl_metadata.load_log(status);
-CREATE INDEX idx_load_log_start_time ON etl_metadata.load_log(start_time DESC);
+CREATE INDEX IF NOT EXISTS idx_load_log_pipeline ON etl_metadata.load_log(pipeline_name);
+CREATE INDEX IF NOT EXISTS idx_load_log_execution_date ON etl_metadata.load_log(execution_date);
+CREATE INDEX IF NOT EXISTS idx_load_log_status ON etl_metadata.load_log(status);
+CREATE INDEX IF NOT EXISTS idx_load_log_start_time ON etl_metadata.load_log(start_time DESC);
 
 COMMENT ON TABLE etl_metadata.load_log IS 'Tracks ETL pipeline execution and statistics';
 COMMENT ON COLUMN etl_metadata.load_log.load_type IS 'Type of load: full, incremental, delta, or snapshot';

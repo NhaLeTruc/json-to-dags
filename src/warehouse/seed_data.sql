@@ -10,7 +10,7 @@
 SET session_replication_role = replica;
 
 -- ============================================================================
--- Dimension: Date (5 years: 2020-2024)
+-- Dimension: Date (7 years: 2020-2026)
 -- ============================================================================
 
 INSERT INTO warehouse.dim_date (date_id, date, year, quarter, month, month_name, week, day_of_week, day_name, is_weekend, is_holiday)
@@ -28,7 +28,7 @@ SELECT
     FALSE AS is_holiday  -- Simplified for demo
 FROM generate_series(
     '2020-01-01'::DATE,
-    '2024-12-31'::DATE,
+    '2026-12-31'::DATE,
     '1 day'::INTERVAL
 ) AS d;
 

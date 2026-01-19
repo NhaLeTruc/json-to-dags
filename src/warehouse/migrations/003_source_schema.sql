@@ -5,6 +5,7 @@
 -- Author: Airflow ETL Demo Team
 -- Date: 2025-10-23
 -- Version: 1.0.0
+-- Idempotent: Yes - safe to re-run
 -- ============================================================================
 
 -- Create source schema
@@ -31,9 +32,9 @@ CREATE TABLE IF NOT EXISTS source.sales_transactions (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_source_sales_last_modified ON source.sales_transactions(last_modified_date);
-CREATE INDEX idx_source_sales_customer ON source.sales_transactions(customer_id);
-CREATE INDEX idx_source_sales_timestamp ON source.sales_transactions(sale_timestamp);
+CREATE INDEX IF NOT EXISTS idx_source_sales_last_modified ON source.sales_transactions(last_modified_date);
+CREATE INDEX IF NOT EXISTS idx_source_sales_customer ON source.sales_transactions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_source_sales_timestamp ON source.sales_transactions(sale_timestamp);
 
 COMMENT ON TABLE source.sales_transactions IS 'Raw sales transaction data from source systems';
 COMMENT ON COLUMN source.sales_transactions.last_modified_date IS 'Used for incremental load watermark tracking';
@@ -51,8 +52,8 @@ CREATE TABLE IF NOT EXISTS source.dim_customer (
     PRIMARY KEY (customer_id, extract_timestamp)
 );
 
-CREATE INDEX idx_source_dim_customer_key ON source.dim_customer(customer_key);
-CREATE INDEX idx_source_dim_customer_extract ON source.dim_customer(extract_timestamp);
+CREATE INDEX IF NOT EXISTS idx_source_dim_customer_key ON source.dim_customer(customer_key);
+CREATE INDEX IF NOT EXISTS idx_source_dim_customer_extract ON source.dim_customer(extract_timestamp);
 
 COMMENT ON TABLE source.dim_customer IS 'Raw customer dimension data for SCD Type 2 processing';
 COMMENT ON COLUMN source.dim_customer.extract_timestamp IS 'Timestamp when data was extracted from source system';
@@ -76,6 +77,11 @@ VALUES
     (2, 'CUST-002', 'Test Customer 2', 'test2@example.com', 'Canada', 'SMB', CURRENT_TIMESTAMP),
     (3, 'CUST-003', 'Test Customer 3', 'test3@example.com', 'UK', 'Consumer', CURRENT_TIMESTAMP)
 ON CONFLICT DO NOTHING;
+
+-- Record this migration
+INSERT INTO warehouse.schema_migrations (migration_name, description)
+VALUES ('003_source_schema', 'Source schema for raw data staging with sales_transactions and dim_customer')
+ON CONFLICT (migration_name) DO NOTHING;
 
 -- Success message
 DO $$
