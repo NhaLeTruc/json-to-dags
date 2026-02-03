@@ -29,16 +29,12 @@ EFFICIENCY:
 - Scalable to billions of records
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from airflow import DAG
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.operators.python import PythonOperator
-from datetime import datetime, timedelta
-
-def days_ago(n):
-    return datetime.now() - timedelta(days=n)
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 
 from src.hooks.warehouse_hook import WarehouseHook
 from src.utils.logger import get_logger
@@ -62,7 +58,7 @@ dag = DAG(
     default_args=default_args,
     description="Incremental load pattern with watermark tracking",
     schedule="@hourly",  # Run every hour for near-real-time
-    start_date=days_ago(7),
+    start_date=datetime(2025, 1, 1),
     catchup=True,  # Backfill from start_date
     max_active_runs=1,  # Prevent overlapping runs
     tags=["intermediate", "incremental", "watermark", "idempotent", "fact-table"],

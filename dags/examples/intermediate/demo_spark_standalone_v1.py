@@ -57,8 +57,6 @@ word_count_job = SparkStandaloneOperator(
     name="WordCount_Demo",
     deploy_mode="client",
     conf={
-        "spark.executor.memory": "1g",
-        "spark.executor.cores": "1",
         "spark.dynamicAllocation.enabled": "false",
     },
     application_args=[],  # Will use default sample data
@@ -72,6 +70,10 @@ word_count_job = SparkStandaloneOperator(
 
 # Spark job 2: Sales Aggregation (realistic example)
 # Note: This requires warehouse database to be accessible from Spark
+# DESIGN-002: In production, use Airflow connections instead of hardcoded JDBC URLs:
+#   from airflow.hooks.base import BaseHook
+#   conn = BaseHook.get_connection("warehouse")
+#   jdbc_url = f"jdbc:postgresql://{conn.host}:{conn.port}/{conn.schema}"
 sales_aggregation_job = SparkStandaloneOperator(
     task_id="spark_sales_aggregation",
     application="/opt/spark/apps/sales_aggregation.py",
@@ -79,13 +81,11 @@ sales_aggregation_job = SparkStandaloneOperator(
     name="SalesAggregation_Demo",
     deploy_mode="client",
     conf={
-        "spark.executor.memory": "2g",
-        "spark.executor.cores": "2",
         "spark.sql.shuffle.partitions": "10",
         "spark.dynamicAllocation.enabled": "false",
     },
     application_args=[
-        "jdbc:postgresql://airflow-warehouse:5432/warehouse",
+        "jdbc:postgresql://airflow-warehouse:5432/warehouse",  # Demo only; use Airflow connection in production
         "/opt/spark/data/sales_output",
     ],
     executor_memory="2g",

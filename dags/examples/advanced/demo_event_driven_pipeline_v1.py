@@ -56,7 +56,10 @@ default_args = {
 
 
 # File landing zone configuration
-LANDING_ZONE = "/tmp/airflow/landing_zone"  # In real setup, this would be shared storage
+# DESIGN-001: Use Airflow Variable for configurable path in production:
+#   from airflow.models import Variable
+#   LANDING_ZONE = Variable.get("landing_zone_path", default_var="/tmp/airflow/landing_zone")
+LANDING_ZONE = "/tmp/airflow/landing_zone"  # Demo only; use Variable in production
 FILE_PATTERN = "sales_data_*.csv"
 
 
@@ -126,9 +129,13 @@ def extract_file_metadata(**context):
     file_size_bytes = file_stats.st_size
     file_size_mb = file_size_bytes / (1024 * 1024)
 
-    # Calculate file checksum for idempotency
+    # Calculate file checksum for idempotency using SHA-256 (BUG-004 fix: MD5 is weak)
+    # INEFF-004 fix: Read file in chunks for memory efficiency
+    hash_obj = hashlib.sha256()
     with open(filepath, "rb") as f:
-        file_hash = hashlib.md5(f.read()).hexdigest()
+        for chunk in iter(lambda: f.read(8192), b""):
+            hash_obj.update(chunk)
+    file_hash = hash_obj.hexdigest()
 
     # Count lines to estimate record count
     with open(filepath) as f:
@@ -301,6 +308,11 @@ def handle_unsupported_format(**context):
     task_instance = context["task_instance"]
 
     metadata = task_instance.xcom_pull(task_ids="extract_file_metadata", key="file_metadata")
+
+    # BUG-005 fix: Add null check before accessing metadata
+    if not metadata:
+        logger.error("No metadata available")
+        return {"status": "error", "reason": "no_metadata"}
 
     logger.warning(f"Unsupported file format: {metadata.get('file_format')}")
     logger.warning(f"File: {metadata.get('filename')}")

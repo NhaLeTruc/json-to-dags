@@ -22,16 +22,12 @@ KEY AIRFLOW FEATURES:
 - Branching based on quality check outcomes
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from airflow import DAG
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.operators.python import PythonOperator
-from datetime import datetime, timedelta
-
-def days_ago(n):
-    return datetime.now() - timedelta(days=n)
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 
 from src.operators.quality.base_quality_operator import QualitySeverity
 from src.operators.quality.completeness_checker import CompletenessChecker
@@ -56,7 +52,7 @@ dag = DAG(
     default_args=default_args,
     description="Basic data quality validation with schema and completeness checks",
     schedule="@daily",
-    start_date=days_ago(1),
+    start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=["beginner", "data-quality", "validation", "fail-fast"],
     doc_md=__doc__,

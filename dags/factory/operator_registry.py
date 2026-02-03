@@ -5,6 +5,7 @@ Registers built-in and custom Airflow operators and provides lookup
 and instantiation functionality for the DAG factory.
 """
 
+from functools import lru_cache
 from typing import Any
 
 from airflow.models import BaseOperator
@@ -248,18 +249,15 @@ class OperatorRegistry:
         }
 
 
-# Global registry instance
-_registry: OperatorRegistry | None = None
-
-
+# DESIGN-005 fix: Use lru_cache for thread-safe singleton pattern
+@lru_cache(maxsize=1)
 def get_default_registry() -> OperatorRegistry:
     """
     Get or create global OperatorRegistry instance.
 
+    Uses lru_cache for thread-safe singleton pattern.
+
     Returns:
         Singleton OperatorRegistry instance
     """
-    global _registry
-    if _registry is None:
-        _registry = OperatorRegistry()
-    return _registry
+    return OperatorRegistry()

@@ -101,7 +101,7 @@ def check_upstream_data_quality(**context):
     # In real implementation, this would query quality metrics from upstream DAG
     import random
 
-    random.seed(execution_date.day)  # Deterministic for demo
+    random.seed(hash(execution_date.isoformat()))  # Deterministic using full date
 
     record_count = random.randint(500, 1500)
     error_rate = random.uniform(0.0, 0.05)  # 0-5% error rate
@@ -177,8 +177,13 @@ def process_validated_data(**context):
         task_ids="check_data_quality", key="quality_check_result"
     )
 
+    # BUG-006 fix: Add defensive null check for XCom result
+    if not quality_result:
+        logger.warning("No quality check result available, using default values")
+        quality_result = {"record_count": 0}
+
     logger.info("Processing validated data from upstream DAG")
-    logger.info(f"Processing {quality_result['record_count']} records")
+    logger.info(f"Processing {quality_result.get('record_count', 0)} records")
 
     # Simulate processing
     result = {
@@ -253,7 +258,7 @@ with DAG(
         allowed_states=[DagRunState.SUCCESS],
         failed_states=[DagRunState.FAILED],
         mode="poke",
-        timeout=60,  # 1 minute timeout for demo
+        timeout=60,  # 1 minute for demo; production: use 3600+ (1 hour) or Variable.get("sensor_timeout")
         poke_interval=10,  # Check every 10 seconds
         doc_md="""
         Wait for upstream DAG (demo_simple_extract_load_v1) to complete successfully.

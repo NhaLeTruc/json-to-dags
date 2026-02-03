@@ -148,6 +148,10 @@ class DAGBuilder:
             "tags": config.get("tags", []),
         }
 
+        # QUALITY-005 fix: Add max_active_runs processing
+        if "max_active_runs" in config:
+            dag_kwargs["max_active_runs"] = config["max_active_runs"]
+
         return dag_kwargs
 
     def _process_default_args(self, default_args: dict[str, Any]) -> dict[str, Any]:

@@ -34,7 +34,6 @@ from src.utils.notification_templates import get_template
 default_args = {
     "owner": "data-engineering",
     "depends_on_past": False,
-    "start_date": datetime(2025, 1, 1),
     "email": ["airflow@example.com"],
     "email_on_failure": False,  # We'll use custom notification operators
     "email_on_retry": False,
@@ -142,26 +141,7 @@ All tasks completed successfully!
         smtp_port=587,
     )
 
-    # Task 7: Intentionally failing task (for failure notification demo)
-    # Commented out by default - uncomment to test failure notifications
-    # failing_task = BashOperator(
-    #     task_id="failing_task",
-    #     bash_command="exit 1",  # This will fail
-    #     on_failure_callback=lambda context: print("Task failed!"),
-    # )
-    #
-    # send_failure_notification = EmailNotificationOperator(
-    #     task_id="send_failure_notification",
-    #     to="admin@example.com",
-    #     subject="[Airflow] {{ dag.dag_id }} - FAILED",
-    #     message_template=get_template("failure", "detailed"),
-    #     html=True,
-    #     smtp_host="{{ var.value.get('smtp_host', 'localhost') }}",
-    #     smtp_port=587,
-    #     trigger_rule="one_failed",  # Execute even if upstream fails
-    # )
-
-    # Task 8: Summary notification (always runs)
+    # Task 7: Summary notification (always runs)
     send_summary_notification = EmailNotificationOperator(
         task_id="send_summary_notification",
         to="admin@example.com",
@@ -210,9 +190,6 @@ This is an automated notification from Airflow.
         send_telegram_notification,
         send_detailed_notification,
     ] >> send_summary_notification
-
-    # Failure notification flow (if enabled)
-    # failing_task >> send_failure_notification
 
 
 # DAG Documentation

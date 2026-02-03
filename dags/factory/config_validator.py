@@ -7,6 +7,7 @@ and verifies task references.
 
 import json
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -226,18 +227,15 @@ class ConfigValidator:
         return self.validate(config)
 
 
-# Global validator instance
-_validator: ConfigValidator | None = None
-
-
+# DESIGN-005 fix: Use lru_cache for thread-safe singleton pattern
+@lru_cache(maxsize=1)
 def get_default_validator() -> ConfigValidator:
     """
     Get or create global ConfigValidator instance.
 
+    Uses lru_cache for thread-safe singleton pattern.
+
     Returns:
         Singleton ConfigValidator instance
     """
-    global _validator
-    if _validator is None:
-        _validator = ConfigValidator()
-    return _validator
+    return ConfigValidator()

@@ -156,7 +156,7 @@ def validate_completeness(**context):
     # In real implementation: SELECT COUNT(*) FROM fact_sales WHERE date = ...
     import random
 
-    random.seed(context["execution_date"].day)
+    random.seed(hash(context["execution_date"].isoformat()))  # Use full date for better diversity
 
     actual_row_count = random.randint(950, 1050)
     expected_row_count = 1000

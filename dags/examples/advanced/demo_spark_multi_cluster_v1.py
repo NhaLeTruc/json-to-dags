@@ -21,9 +21,12 @@ Note: This DAG is designed to showcase all operators. In production, you would
 typically use one cluster type based on your infrastructure.
 """
 
+import logging
 from datetime import datetime
 
 from airflow import DAG
+
+logger = logging.getLogger(__name__)
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 
@@ -81,16 +84,14 @@ check_clusters = PythonOperator(
 # Spark Standalone Jobs
 # ==============================================================================
 
+# INEFF-005 fix: Use explicit parameters instead of duplicating in conf dict
 standalone_word_count = SparkStandaloneOperator(
     task_id="standalone_word_count",
     application="/opt/spark/apps/word_count.py",
     master="spark://spark-master:7077",
     name="Standalone_WordCount",
     deploy_mode="client",
-    conf={
-        "spark.executor.memory": "1g",
-        "spark.executor.cores": "1",
-    },
+    conf={},  # Use explicit parameters below instead
     executor_memory="1g",
     executor_cores="1",
     num_executors="2",
@@ -98,6 +99,7 @@ standalone_word_count = SparkStandaloneOperator(
     dag=dag,
 )
 
+# DESIGN-002: In production, use Airflow connections instead of hardcoded JDBC URLs
 standalone_sales_agg = SparkStandaloneOperator(
     task_id="standalone_sales_aggregation",
     application="/opt/spark/apps/sales_aggregation.py",
@@ -105,11 +107,10 @@ standalone_sales_agg = SparkStandaloneOperator(
     name="Standalone_SalesAgg",
     deploy_mode="client",
     conf={
-        "spark.executor.memory": "2g",
         "spark.sql.shuffle.partitions": "10",
     },
     application_args=[
-        "jdbc:postgresql://airflow-warehouse:5432/warehouse",
+        "jdbc:postgresql://airflow-warehouse:5432/warehouse",  # Demo only; use Airflow connection in production
         "/opt/spark/data/standalone_sales",
     ],
     executor_memory="2g",
@@ -230,8 +231,9 @@ def aggregate_results(**context):
         # YARN and K8s jobs would also be collected if they ran
     }
 
-    for _job_name, _job_id in results.items():
-        pass
+    # INEFF-003 fix: Log aggregated results instead of doing nothing
+    completed_jobs = {name: job_id for name, job_id in results.items() if job_id}
+    logger.info(f"Aggregated {len(completed_jobs)} completed Spark jobs: {list(completed_jobs.keys())}")
 
 
 aggregate = PythonOperator(
