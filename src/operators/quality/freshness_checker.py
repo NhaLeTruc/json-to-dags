@@ -111,13 +111,14 @@ class FreshnessChecker(BaseQualityOperator):
         :param timestamp: Timestamp to calculate age for
         :return: Dictionary with age in hours and minutes
         """
-        now = datetime.now()
+        # Use timezone-aware now() for consistent comparison with DB timestamps
+        now = datetime.now(UTC)
 
-        # Handle timezone-aware timestamps
-        if timestamp.tzinfo is not None and now.tzinfo is None:
-            now = now.replace(tzinfo=UTC)
-        elif timestamp.tzinfo is None and now.tzinfo is not None:
-            now = now.replace(tzinfo=None)
+        # Handle timezone-naive timestamps from DB
+        if timestamp.tzinfo is None:
+            # Assume naive timestamps are UTC
+            from datetime import timezone
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
 
         age_delta = now - timestamp
         age_hours = age_delta.total_seconds() / 3600.0

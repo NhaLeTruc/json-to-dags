@@ -47,6 +47,18 @@ class SchemaValidator(BaseQualityOperator):
         if not expected_schema or "columns" not in expected_schema:
             raise ValueError("expected_schema must contain 'columns' list")
 
+        # Validate each column definition has required keys
+        for i, col in enumerate(expected_schema["columns"]):
+            if not isinstance(col, dict) or "name" not in col:
+                raise ValueError(
+                    f"expected_schema column at index {i} must be a dict with at least a 'name' key"
+                )
+            if check_types and "type" not in col:
+                raise ValueError(
+                    f"expected_schema column '{col['name']}' must have a 'type' key "
+                    f"when check_types=True"
+                )
+
         self.expected_schema = expected_schema
         self.check_types = check_types
         self.check_nullability = check_nullability

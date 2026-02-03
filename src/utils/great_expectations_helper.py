@@ -84,7 +84,7 @@ class GreatExpectationsHelper:
             suite = self.context.get_expectation_suite(suite_name)
             logger.info(f"Loaded expectation suite '{suite_name}' from GE store")
             return suite
-        except Exception as store_error:
+        except (KeyError, ValueError, FileNotFoundError) as store_error:
             logger.debug(f"Could not load from store: {store_error}")
 
         # Fall back to loading from JSON file

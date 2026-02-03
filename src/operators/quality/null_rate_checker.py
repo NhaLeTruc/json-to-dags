@@ -90,19 +90,29 @@ class NullRateChecker(BaseQualityOperator):
 
     def get_null_rates(self) -> dict[str, float]:
         """
-        Get NULL rates for all columns.
+        Get NULL rates for all columns using a single query.
 
         :return: Dictionary mapping column to NULL percentage
         """
-        total_count = self.get_total_count()
+        hook = WarehouseHook(postgres_conn_id=self.warehouse_conn_id)
 
-        if total_count == 0:
-            # Empty table - return N/A
+        # Build a single query that counts NULLs for all columns at once
+        count_exprs = ["COUNT(*) AS total_count"]
+        for col in self.columns:
+            count_exprs.append(f"SUM(CASE WHEN {col} IS NULL THEN 1 ELSE 0 END) AS null_{col}")
+
+        query = f"SELECT {', '.join(count_exprs)} FROM {self.table_name}"
+        if self.where_clause:
+            query += f" WHERE {self.where_clause}"
+
+        result = hook.get_first(query)
+        if not result or result[0] == 0:
             return {col: 0.0 for col in self.columns}
 
+        total_count = result[0]
         rates = {}
-        for col in self.columns:
-            null_count = self.get_null_count(col)
+        for i, col in enumerate(self.columns):
+            null_count = result[i + 1] or 0
             null_percentage = (null_count / total_count) * 100.0
             rates[col] = round(null_percentage, 2)
 

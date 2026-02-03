@@ -43,7 +43,9 @@ class MockDataGenerator:
 
         for i in range(1, count + 1):
             # Intentionally include some null emails for quality testing
-            email = None if i % int(1 / null_email_rate) == 0 else self.fake.email()
+            # Use random.random() < rate pattern to avoid division by zero when rate is 0
+            import random
+            email = None if (null_email_rate > 0 and random.random() < null_email_rate) else self.fake.email()
 
             customer = {
                 "customer_key": f"CUST-{str(i).zfill(5)}",
@@ -164,9 +166,11 @@ class MockDataGenerator:
         sales = []
         used_transaction_ids = set()
 
+        import random
         for i in range(1, count + 1):
             # Generate or duplicate transaction ID
-            if i % int(1 / duplicate_rate) == 0 and len(used_transaction_ids) > 0:
+            # Use random.random() < rate pattern to avoid division by zero
+            if duplicate_rate > 0 and random.random() < duplicate_rate and len(used_transaction_ids) > 0:
                 # Create duplicate (quality issue)
                 transaction_id = self.fake.random_element(list(used_transaction_ids))
             else:
@@ -176,7 +180,7 @@ class MockDataGenerator:
             # Intentionally create orphaned records (quality issue)
             customer_id = (
                 None
-                if i % int(1 / null_customer_rate) == 0
+                if (null_customer_rate > 0 and random.random() < null_customer_rate)
                 else self.fake.random_element(customer_ids)
             )
 
@@ -187,7 +191,7 @@ class MockDataGenerator:
             sale_date_id = int(sale_date.strftime("%Y%m%d"))
 
             # Quantity (with some negative values - quality issue)
-            if i % int(1 / negative_quantity_rate) == 0:
+            if negative_quantity_rate > 0 and random.random() < negative_quantity_rate:
                 quantity = -1 * self.fake.random_int(min=1, max=5)
             else:
                 quantity = self.fake.random_int(min=1, max=10)
@@ -196,7 +200,7 @@ class MockDataGenerator:
             discount = Decimal(str(self.fake.random_number(digits=1)))
 
             # Calculate total amount (with some errors - quality issue)
-            if i % int(1 / calculation_error_rate) == 0:
+            if calculation_error_rate > 0 and random.random() < calculation_error_rate:
                 # Incorrect calculation (missing discount)
                 total_amount = quantity * unit_price
             else:

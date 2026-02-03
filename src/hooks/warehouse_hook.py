@@ -101,11 +101,12 @@ class WarehouseHook(BaseHook):
                 password=conn.password,
             )
             logger.info("Connected to warehouse database", host=conn.host, db=conn.schema)
-        except Exception:
+        except (psycopg2.OperationalError, psycopg2.DatabaseError, Exception) as conn_err:
             # Fallback to environment variables
             logger.warning(
                 "Airflow connection not found, using environment variables",
                 conn_id=self.warehouse_conn_id,
+                error=str(conn_err),
             )
             config = get_config_loader().load_warehouse_config()
             self._connection = psycopg2.connect(
@@ -144,7 +145,11 @@ class WarehouseHook(BaseHook):
         cursor = None
 
         try:
-            cursor = conn.cursor(cursor_factory=DictCursor)
+            # Use DictCursor only for fetch operations; regular cursor for writes
+            if fetch:
+                cursor = conn.cursor(cursor_factory=DictCursor)
+            else:
+                cursor = conn.cursor()
             cursor.execute(query, params)
 
             if fetch:

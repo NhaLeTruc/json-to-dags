@@ -77,8 +77,9 @@ class CompletenessChecker(BaseQualityOperator):
         """
         hook = WarehouseHook(postgres_conn_id=self.warehouse_conn_id)
 
-        # Build query
+        # Build query with parameterized partition value to prevent SQL injection
         query = f"SELECT COUNT(*) FROM {self.table_name}"
+        params: tuple = ()
 
         # Add WHERE clause if provided
         conditions = []
@@ -86,12 +87,13 @@ class CompletenessChecker(BaseQualityOperator):
             conditions.append(f"({self.where_clause})")
 
         if self.partition_column and self.partition_value:
-            conditions.append(f"{self.partition_column} = '{self.partition_value}'")
+            conditions.append(f"{self.partition_column} = %s")
+            params = (self.partition_value,)
 
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
 
-        result = hook.get_first(query)
+        result = hook.get_first(query, parameters=params if params else None)
         return result[0] if result else 0
 
     def get_previous_count(self, context: dict[str, Any]) -> int | None:
@@ -141,15 +143,12 @@ class CompletenessChecker(BaseQualityOperator):
                 max_check_passed = actual_count <= self.max_count
 
             # Check against expected with tolerance
+            # Note: min/max are already computed from tolerance in __init__,
+            # so reuse them here instead of recalculating
             expected_check_passed = True
             if self.expected_count is not None:
-                if self.tolerance_percent:
-                    tolerance_value = int(self.expected_count * (self.tolerance_percent / 100.0))
-                    expected_check_passed = (
-                        self.expected_count - tolerance_value
-                        <= actual_count
-                        <= self.expected_count + tolerance_value
-                    )
+                if self.tolerance_percent and self.min_count is not None and self.max_count is not None:
+                    expected_check_passed = self.min_count <= actual_count <= self.max_count
                 else:
                     expected_check_passed = actual_count == self.expected_count
 

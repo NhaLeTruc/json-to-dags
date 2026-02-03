@@ -101,7 +101,7 @@ class TimeoutContext:
 
         if self.start_time:
             elapsed = (self.end_time - self.start_time).total_seconds()
-            self.timed_out = elapsed > self.timeout_seconds
+            self.timed_out = self.timeout_seconds > 0 and elapsed > self.timeout_seconds
 
             logger.debug(
                 "Timeout context ended",
@@ -124,7 +124,7 @@ class TimeoutContext:
         current_time = self.end_time if self.end_time else datetime.now()
         elapsed = (current_time - self.start_time).total_seconds()
 
-        return elapsed > self.timeout_seconds
+        return self.timeout_seconds > 0 and elapsed > self.timeout_seconds
 
 
 def calculate_elapsed_time(

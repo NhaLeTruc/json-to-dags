@@ -58,7 +58,7 @@ class ConfigLoader:
             msg = f"Required configuration key not found: {key}"
             logger.error(msg)
             raise ValueError(msg)
-        return value or ""
+        return value if value is not None else (default or "")
 
     def get_int(self, key: str, default: int | None = None, required: bool = False) -> int:
         """
@@ -156,7 +156,7 @@ class ConfigLoader:
             "user": self.get_str("WAREHOUSE_USER", "warehouse_user", required=True),
             "password": self.get_str("WAREHOUSE_PASSWORD", "warehouse_pass", required=True),
         }
-        logger.info("Warehouse configuration loaded", host=config["host"], db=config["database"])
+        logger.info("Warehouse configuration loaded", host=config["host"], database=config["database"])
         return config
 
     def load_smtp_config(self) -> dict[str, Any] | None:

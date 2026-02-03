@@ -196,7 +196,10 @@ class BaseQualityOperator(BaseOperator):
             # 3. Store: check_id, table_name, check_type, severity, status, metrics, timestamp
             # 4. Enable historical trending and SLA monitoring
             # For now, results are logged and can be retrieved from Airflow task logs
-            logger.debug("Result storage to database not yet implemented (see inline docs for implementation plan)", extra={"result": result})
+            logger.warning(
+                "Result storage to database not yet implemented; "
+                "results are available in Airflow task logs only"
+            )
         except Exception as e:
             # Don't fail task if result storage fails
             logger.warning(
@@ -211,26 +214,17 @@ class BaseQualityOperator(BaseOperator):
         :return: Quality check result dictionary
         :raises AirflowException: If check fails with ERROR or CRITICAL severity
         """
-        dag_id = (
-            context.get("dag", {}).dag_id
-            if hasattr(context.get("dag", {}), "dag_id")
-            else "unknown"
-        )
-        task_id = (
-            context.get("task", {}).task_id
-            if hasattr(context.get("task", {}), "task_id")
-            else "unknown"
-        )
+        # Use self.dag_id/self.task_id from BaseOperator as reliable fallbacks
+        dag_id = getattr(context.get("dag"), "dag_id", None) or self.dag_id
+        task_id_val = getattr(context.get("task"), "task_id", None) or self.task_id
         execution_date = context.get("execution_date", "unknown")
 
         logger.info(
             f"Executing quality check: {self.__class__.__name__}",
-            extra={
-                "dag_id": dag_id,
-                "task_id": task_id,
-                "table": self.table_name,
-                "severity": self.severity.name,
-            },
+            dag_id=dag_id,
+            task_id=task_id_val,
+            table=self.table_name,
+            severity=self.severity.name,
         )
 
         try:
@@ -251,7 +245,7 @@ class BaseQualityOperator(BaseOperator):
                 "threshold": self.threshold,
                 "timestamp": datetime.now().isoformat(),
                 "dag_id": dag_id,
-                "task_id": task_id,
+                "task_id": task_id_val,
                 "execution_date": str(execution_date),
             }
 
@@ -270,13 +264,10 @@ class BaseQualityOperator(BaseOperator):
         except Exception as e:
             logger.error(
                 f"Quality check execution failed: {str(e)}",
-                extra={
-                    "dag_id": dag_id,
-                    "task_id": task_id,
-                    "table": self.table_name,
-                    "error_type": type(e).__name__,
-                },
-                exc_info=True,
+                dag_id=dag_id,
+                task_id=task_id_val,
+                table=self.table_name,
+                error_type=type(e).__name__,
             )
             raise AirflowException(f"Quality check failed for {self.table_name}: {str(e)}") from e
 

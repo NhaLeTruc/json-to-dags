@@ -15,6 +15,7 @@ def main():
     """Run sales aggregation Spark job."""
     # Parse arguments
     if len(sys.argv) < 2:
+        print("Usage: sales_aggregation.py <warehouse_jdbc_url> [output_path]", file=sys.stderr)
         sys.exit(1)
 
     warehouse_url = sys.argv[1]
@@ -49,10 +50,13 @@ def main():
         )
         dim_date = spark.read.jdbc(url=warehouse_url, table="DimDate", properties=db_properties)
 
-        # Join fact with dimensions
+        # Join fact with dimensions using explicit column conditions
+        # to avoid ambiguous column names in downstream operations
         sales_enriched = (
-            fact_sales.join(dim_customer, "CustomerKey")
-            .join(dim_product, "ProductKey")
+            fact_sales.join(dim_customer, fact_sales.CustomerKey == dim_customer.CustomerKey)
+            .drop(dim_customer.CustomerKey)
+            .join(dim_product, fact_sales.ProductKey == dim_product.ProductKey)
+            .drop(dim_product.ProductKey)
             .join(dim_date, fact_sales.OrderDateKey == dim_date.DateKey)
         )
 

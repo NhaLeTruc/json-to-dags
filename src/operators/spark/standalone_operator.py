@@ -116,12 +116,14 @@ class SparkStandaloneOperator(BaseOperator):
         if SPARK_SIMULATION_MODE:
             import time
             self._job_id = f"sim-standalone-{int(time.time())}"
-            logger.info(f"[SIMULATION MODE] Spark Standalone job simulated: {self.name}")
-            logger.info(f"[SIMULATION MODE] Would submit to master: {self.master}")
-            logger.info(f"[SIMULATION MODE] Application: {self.application}")
-            logger.info(f"[SIMULATION MODE] Deploy mode: {self.deploy_mode}")
-            logger.info(f"[SIMULATION MODE] Executor memory: {self.executor_memory}")
-            logger.info(f"[SIMULATION MODE] Num executors: {self.num_executors}")
+            logger.info(
+                f"[SIMULATION MODE] Spark Standalone job simulated: {self.name}",
+                master=self.master,
+                application=self.application,
+                deploy_mode=self.deploy_mode,
+                executor_memory=self.executor_memory,
+                num_executors=self.num_executors,
+            )
             context["task_instance"].xcom_push(key="spark_job_id", value=self._job_id)
             context["task_instance"].xcom_push(key="simulation_mode", value=True)
             return self._job_id

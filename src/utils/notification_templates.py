@@ -247,15 +247,15 @@ View Spark UI: {{ logs_url }}
         ]
 
     @staticmethod
-    def build_teams_actions(dag_id: str, run_id: str) -> list:
+    def build_teams_actions(dag_id: str, run_id: str, base_url: str = "http://localhost:8080") -> list:
         """
         Build actions array for Teams MessageCard.
 
         :param dag_id: DAG identifier
         :param run_id: Run identifier
+        :param base_url: Airflow webserver base URL (default: http://localhost:8080)
         :return: List of action dictionaries
         """
-        base_url = "http://localhost:8080"  # Should be configurable
         return [
             {
                 "@type": "OpenUri",

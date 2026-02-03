@@ -6,6 +6,7 @@ Supports job submission, status polling, log retrieval, and job termination.
 """
 
 import subprocess
+import tempfile
 import time
 from enum import Enum
 
@@ -55,6 +56,7 @@ class SparkHook(BaseHook):
         self.conn_id = conn_id
         self.verbose = verbose
         self._jobs: dict[str, subprocess.Popen] = {}
+        self._job_logs: dict[str, tuple[str, str]] = {}  # job_id -> (stdout_path, stderr_path)
         self._connection = None
         self._master_url = None
         self._spark_binary = None
@@ -81,7 +83,7 @@ class SparkHook(BaseHook):
         """Get path to spark-submit binary."""
         if self._spark_binary is None:
             conn = self.get_conn()
-            extra = conn.extra_dejson if hasattr(conn, "extra_dejson") else {}
+            extra = getattr(conn, "extra_dejson", None) or {}
             self._spark_binary = extra.get("spark_binary", "spark-submit")
         return self._spark_binary
 
@@ -194,16 +196,26 @@ class SparkHook(BaseHook):
 
         try:
             logger.info(f"Submitting Spark job: {name or application}")
+
+            # Use temp files instead of PIPE to avoid blocking on large output
+            stdout_file = tempfile.NamedTemporaryFile(
+                mode="w", suffix="_stdout.log", delete=False
+            )
+            stderr_file = tempfile.NamedTemporaryFile(
+                mode="w", suffix="_stderr.log", delete=False
+            )
+
             process = subprocess.Popen(
                 command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stdout=stdout_file,
+                stderr=stderr_file,
                 universal_newlines=True,
             )
 
             # Generate job ID from process PID and timestamp
             job_id = f"spark-{process.pid}-{int(time.time())}"
             self._jobs[job_id] = process
+            self._job_logs[job_id] = (stdout_file.name, stderr_file.name)
 
             logger.info(f"Spark job submitted successfully. Job ID: {job_id}, PID: {process.pid}")
             return job_id
@@ -319,26 +331,45 @@ class SparkHook(BaseHook):
             logger.warning(f"Job ID {job_id} not found")
             return None
 
-        process = self._jobs[job_id]
+        if job_id not in self._job_logs:
+            logger.warning(f"No log files found for job {job_id}")
+            return None
+
+        stdout_path, stderr_path = self._job_logs[job_id]
 
         try:
-            # Get stdout and stderr
-            stdout, stderr = process.communicate(timeout=1)
+            # Read logs from temp files (safe even while process is running)
+            stdout = ""
+            stderr = ""
+            with open(stdout_path) as f:
+                stdout = f.read()
+            with open(stderr_path) as f:
+                stderr = f.read()
             logs = f"=== STDOUT ===\n{stdout}\n\n=== STDERR ===\n{stderr}"
             return logs
-        except subprocess.TimeoutExpired:
-            # Process still running, can't get full logs yet
-            return None
         except Exception as e:
             logger.error(f"Error retrieving logs for job {job_id}: {str(e)}")
             return None
 
     def cleanup_job(self, job_id: str):
         """
-        Clean up job tracking for completed job.
+        Clean up job tracking and temp log files for completed job.
 
         :param job_id: Job ID to clean up
         """
         if job_id in self._jobs:
             del self._jobs[job_id]
-            logger.debug(f"Cleaned up tracking for job {job_id}")
+
+        # Clean up temp log files
+        if job_id in self._job_logs:
+            import os
+
+            stdout_path, stderr_path = self._job_logs[job_id]
+            for path in (stdout_path, stderr_path):
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass
+            del self._job_logs[job_id]
+
+        logger.debug(f"Cleaned up tracking for job {job_id}")

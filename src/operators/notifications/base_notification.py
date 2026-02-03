@@ -113,25 +113,16 @@ class BaseNotificationOperator(BaseOperator):
         :return: True if successful, None otherwise
         :raises AirflowException: If notification fails after retries
         """
-        dag_id = (
-            context.get("dag", {}).dag_id
-            if hasattr(context.get("dag", {}), "dag_id")
-            else "unknown"
-        )
-        task_id = (
-            context.get("task", {}).task_id
-            if hasattr(context.get("task", {}), "task_id")
-            else "unknown"
-        )
+        # Use self.dag_id/self.task_id from BaseOperator as reliable fallbacks
+        dag_id = getattr(context.get("dag"), "dag_id", None) or self.dag_id
+        task_id_val = getattr(context.get("task"), "task_id", None) or self.task_id
         execution_date = context.get("execution_date", "unknown")
 
         logger.info(
             f"Executing notification operator: {self.__class__.__name__}",
-            extra={
-                "dag_id": dag_id,
-                "task_id": task_id,
-                "execution_date": str(execution_date),
-            },
+            dag_id=dag_id,
+            task_id=task_id_val,
+            execution_date=str(execution_date),
         )
 
         try:
@@ -162,13 +153,10 @@ class BaseNotificationOperator(BaseOperator):
         except Exception as e:
             logger.error(
                 f"Notification operator failed: {str(e)}",
-                extra={
-                    "dag_id": dag_id,
-                    "task_id": task_id,
-                    "error_type": type(e).__name__,
-                    "error_message": str(e),
-                },
-                exc_info=True,
+                dag_id=dag_id,
+                task_id=task_id_val,
+                error_type=type(e).__name__,
+                error_message=str(e),
             )
             raise AirflowException(f"Notification failed: {str(e)}") from e
 

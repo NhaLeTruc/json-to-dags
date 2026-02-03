@@ -4,6 +4,7 @@ Uniqueness Checker Operator for Apache Airflow.
 Validates uniqueness of key columns and detects duplicate records.
 """
 
+import re
 from typing import Any
 
 from airflow.exceptions import AirflowException
@@ -13,6 +14,9 @@ from src.operators.quality.base_quality_operator import BaseQualityOperator
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+# Valid SQL identifier pattern (alphanumeric + underscore, must start with letter/underscore)
+_SQL_IDENTIFIER_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 
 class UniquenessChecker(BaseQualityOperator):
@@ -26,7 +30,10 @@ class UniquenessChecker(BaseQualityOperator):
     :param key_columns: List of columns forming unique key
     :param max_duplicate_percentage: Maximum allowed duplicate percentage
     :param where_clause: SQL WHERE clause for filtering
-    :param exclude_nulls: Exclude NULL values from check
+    :param exclude_nulls: Exclude NULL values from check (default: True).
+        Note: When True, rows with NULL in any key column are excluded from
+        both duplicate and total count queries, which may mask duplicates
+        in nullable columns.
     :param case_sensitive: Case-sensitive comparison
     :param trim_whitespace: Trim whitespace before comparison
     :param return_duplicates: Return specific duplicate rows
@@ -52,6 +59,14 @@ class UniquenessChecker(BaseQualityOperator):
 
         if not key_columns:
             raise ValueError("key_columns must contain at least one column")
+
+        # Validate column names to prevent SQL injection
+        for col in key_columns:
+            if not _SQL_IDENTIFIER_PATTERN.match(col):
+                raise ValueError(
+                    f"Invalid column name: '{col}'. "
+                    "Column names must be alphanumeric with underscores."
+                )
 
         self.key_columns = key_columns
         self.max_duplicate_percentage = max_duplicate_percentage

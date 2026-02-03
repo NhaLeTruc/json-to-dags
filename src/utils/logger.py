@@ -59,6 +59,10 @@ class StructuredLogger:
         """
         Format log message with context fields.
 
+        Context keys are sorted alphabetically for deterministic log output,
+        which aids in log parsing and grep-based searches. If insertion order
+        is needed, subclass and override this method.
+
         Args:
             msg: Log message
             extra_context: Additional context for this message only
@@ -71,6 +75,7 @@ class StructuredLogger:
             context.update(extra_context)
 
         if context:
+            # Keys sorted alphabetically for deterministic, searchable output
             context_str = " | ".join(f"{k}={v}" for k, v in sorted(context.items()))
             return f"{msg} | {context_str}"
         return msg

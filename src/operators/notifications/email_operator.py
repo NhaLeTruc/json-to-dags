@@ -79,6 +79,11 @@ class EmailNotificationOperator(BaseNotificationOperator):
         self.from_email = from_email or smtp_user or "airflow@localhost"
         self.html = html
         self.files = files or []
+        if self.files:
+            logger.warning(
+                "File attachments are not yet implemented. "
+                f"{len(self.files)} file(s) will be ignored."
+            )
 
         # SMTP configuration
         self.smtp_host = smtp_host
