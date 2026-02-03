@@ -114,10 +114,6 @@ class TestSchemaValidationDetection:
         if len(schema_tasks) == 0:
             pytest.skip("No schema validation in this DAG")
 
-    def test_detects_extra_columns(self, dag_bag, execution_date):
-        """Test schema validator detects unexpected extra columns."""
-        pytest.skip("Implementation depends on operator strictness configuration")
-
 
 class TestCompletenessDetection:
     """Test suite for completeness check anomaly detection."""
@@ -301,10 +297,6 @@ class TestUniquenessDetection:
             except AirflowException:
                 pass  # Expected for strict uniqueness enforcement
 
-    def test_detects_composite_key_duplicates(self, dag_bag, execution_date):
-        """Test uniqueness checker detects duplicates in composite keys."""
-        pytest.skip("Depends on DAG configuration")
-
 
 class TestNullRateDetection:
     """Test suite for NULL rate anomaly detection."""
@@ -348,10 +340,6 @@ class TestNullRateDetection:
             except AirflowException:
                 pass  # Expected depending on threshold
 
-    def test_detects_nulls_in_not_null_columns(self, dag_bag, execution_date):
-        """Test NULL rate checker detects NULLs in NOT NULL columns."""
-        pytest.skip("Depends on schema enforcement configuration")
-
 
 class TestComprehensiveQualityDAG:
     """Test the comprehensive quality DAG detects all anomaly types."""
@@ -383,16 +371,6 @@ class TestComprehensiveQualityDAG:
         # All 5 check types should be present
         missing_checks = [k for k, v in quality_check_types.items() if not v]
         assert len(missing_checks) == 0, f"Missing quality checks: {missing_checks}"
-
-    def test_quality_results_logged_to_warehouse(self, dag_bag, execution_date):
-        """Test quality check results are stored for audit trail."""
-        pytest.skip("Requires warehouse database access")
-
-        # Conceptual test:
-        # 1. Run comprehensive quality DAG
-        # 2. Query quality_check_results table
-        # 3. Verify results for each check type are stored
-        # 4. Verify timestamp, passed/failed status, and metrics are present
 
     def test_quality_failures_trigger_notifications(self, dag_bag, execution_date):
         """Test quality failures trigger appropriate notifications."""

@@ -192,21 +192,6 @@ class TestRetryBehavior:
         # Should have some retry configurations
         # (This assertion depends on example DAGs existing)
 
-    @pytest.mark.slow
-    def test_retry_behavior_end_to_end(self):
-        """Test complete retry behavior from task failure to final failure."""
-        # This would require actually executing a failing task
-        # and monitoring retry attempts
-
-        # For now, verify the configuration exists
-        dag_bag = DagBag(dag_folder="dags/", include_examples=False)
-
-        if len(dag_bag.dags) == 0:
-            pytest.skip("No DAGs available for end-to-end testing")
-
-        # Verify at least some DAGs are present
-        assert len(dag_bag.dags) >= 0
-
     def test_retry_callback_execution(self):
         """Test that on_retry_callback is executed on retry."""
         # This tests that callbacks are properly configured

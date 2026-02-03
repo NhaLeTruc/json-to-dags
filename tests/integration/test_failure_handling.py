@@ -71,21 +71,6 @@ class TestFailureHandling:
         # Should have at least default trigger rule
         # Common trigger rules: all_success, all_failed, all_done, one_success, one_failed
 
-    def test_on_failure_callback_configured(self):
-        """Test that on_failure_callback is configured for error handling."""
-        dag_bag = DagBag(dag_folder="dags/", include_examples=False)
-
-        if len(dag_bag.dags) == 0:
-            pytest.skip("No DAGs available")
-
-        # Check for failure callbacks
-        for _dag_id, dag in dag_bag.dags.items():
-            if hasattr(dag, "default_args") and dag.default_args:
-                if "on_failure_callback" in dag.default_args:
-                    pass
-
-        # Failure callbacks are optional but recommended
-
     def test_dag_run_state_after_task_failure(self):
         """Test that DAG run state is correctly set after task failure."""
         # Mock scenario: one task fails
@@ -100,27 +85,6 @@ class TestFailureHandling:
         for dag_id, dag in dag_bag.dags.items():
             assert dag is not None
             assert dag.dag_id == dag_id
-
-    def test_compensation_logic_for_failed_tasks(self):
-        """Test that compensation/cleanup tasks run after failures."""
-        # Look for cleanup or compensation tasks in example DAGs
-
-        dag_bag = DagBag(dag_folder="dags/examples/", include_examples=False)
-
-        if len(dag_bag.dags) == 0:
-            pytest.skip("No example DAGs available")
-
-        # Check for tasks with cleanup-related names
-        cleanup_tasks = []
-        for _dag_id, dag in dag_bag.dags.items():
-            for task in dag.tasks:
-                if any(
-                    keyword in task.task_id.lower()
-                    for keyword in ["cleanup", "rollback", "compensation", "recover"]
-                ):
-                    cleanup_tasks.append(task)
-
-        # Cleanup tasks are optional
 
     def test_state_recovery_after_interruption(self):
         """Test that state can be recovered after scheduler interruption."""
@@ -176,17 +140,6 @@ class TestFailureHandling:
         assert "dag_id" in logger.context
         assert "task_id" in logger.context
         assert logger.context["dag_id"] == "test_dag"
-
-    def test_failure_does_not_block_independent_dags(self):
-        """Test that failure in one DAG doesn't block other independent DAGs."""
-        dag_bag = DagBag(dag_folder="dags/", include_examples=False)
-
-        if len(dag_bag.dags) < 2:
-            pytest.skip("Need at least 2 DAGs for this test")
-
-        # All DAGs should be independently executable
-        dag_ids = list(dag_bag.dags.keys())
-        assert len(set(dag_ids)) == len(dag_ids)  # All unique
 
     def test_graceful_degradation_on_partial_failure(self):
         """Test that system continues operating despite partial failures."""

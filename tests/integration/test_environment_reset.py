@@ -101,25 +101,6 @@ class TestEnvironmentReset:
         for vol in critical_volumes:
             assert vol in volumes, f"Volume {vol} should be named volume for clean reset"
 
-    def test_logs_directory_clears_on_reset(self):
-        """Test that logs can be cleared on reset."""
-        # Logs are typically bind-mounted, not in named volumes
-        # So they persist unless manually cleared
-
-        import yaml
-
-        with open("docker-compose.yml") as f:
-            compose_config = yaml.safe_load(f)
-
-        services = compose_config.get("services", {})
-
-        # Check if logs are mounted
-        scheduler = services.get("airflow-scheduler", {})
-        volumes = scheduler.get("volumes", [])
-
-        str(volumes)
-        # Logs directory handling
-
     def test_config_files_persist_after_reset(self):
         """Test that configuration files persist after reset."""
         # Config files in host filesystem should not be affected by reset
@@ -170,15 +151,6 @@ class TestEnvironmentReset:
         docs_exist = os.path.exists("README.md") or os.path.exists("docs/development.md")
         assert docs_exist, "Documentation should exist for environment management"
 
-    def test_initialization_idempotent(self):
-        """Test that initialization scripts are idempotent."""
-        # Running docker compose up multiple times should be safe
-        # Initialization should check if already done
-
-        # This is handled by:
-        # 1. Postgres init scripts only run on empty DB
-        # 2. airflow-init checks if DB is initialized
-
     def test_service_dependencies_respected_after_reset(self):
         """Test that service dependencies are respected after reset."""
         import yaml
@@ -194,18 +166,6 @@ class TestEnvironmentReset:
 
         # Webserver should depend on init completing
         assert len(depends_on) > 0, "Service dependencies should be configured"
-
-    def test_health_checks_prevent_premature_startup(self):
-        """Test that health checks prevent services starting before dependencies ready."""
-        import yaml
-
-        with open("docker-compose.yml") as f:
-            compose_config = yaml.safe_load(f)
-
-        compose_config.get("services", {})
-
-        # Check depends_on uses health check conditions
-        # This ensures proper startup order
 
     @pytest.mark.parametrize(
         "command,description",

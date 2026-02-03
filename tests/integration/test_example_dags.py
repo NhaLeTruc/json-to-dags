@@ -346,29 +346,6 @@ class TestAllExampleDAGs:
         for dag_id, dag in dag_bag.dags.items():
             assert dag.default_args.get("owner"), f"{dag_id} missing owner"
 
-    def test_dag_execution_time_limits(self, dag_bag, execution_date):
-        """Test that each DAG completes within 5 minutes."""
-        pytest.skip("Time-based execution test - run manually")
-
-        # This test should be run manually to verify performance
-        # Automated version would need proper timeout handling
-        for dag_id, dag in dag_bag.dags.items():
-            start_time = datetime.now()
-
-            dag.create_dagrun(
-                state=DagRunState.RUNNING,
-                execution_date=execution_date,
-                run_type=DagRunType.MANUAL,
-                run_id=f"perf_test_{dag_id}_{execution_date.isoformat()}",
-            )
-
-            for task in dag.tasks:
-                task_instance = TaskInstance(task, execution_date)
-                task_instance.run(ignore_ti_state=True)
-
-            duration = (datetime.now() - start_time).total_seconds()
-            assert duration < 300, f"{dag_id} took {duration}s, exceeds 300s limit"
-
     def test_correct_dag_count(self, dag_bag):
         """Test that expected number of example DAGs are present."""
         # Beginner: 4, Intermediate: 5, Advanced: 4 = 13 total example DAGs

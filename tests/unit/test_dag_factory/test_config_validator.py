@@ -231,39 +231,6 @@ class TestConfigValidator:
             "not found" in error.lower() or "file" in error.lower() for error in result.errors
         )
 
-    @pytest.mark.parametrize(
-        "invalid_operator",
-        [
-            "NonExistentOperator",
-            "InvalidOperator123",
-            "",
-        ],
-    )
-    def test_invalid_operator_types(self, invalid_operator):
-        """Test that invalid operator types fail validation."""
-        from dags.factory.config_validator import ConfigValidator
-
-        config = {
-            "dag_id": "invalid_operator_dag",
-            "description": "DAG with invalid operator",
-            "schedule_interval": "0 2 * * *",
-            "start_date": "2024-01-01",
-            "default_args": {"owner": "airflow", "retries": 1},
-            "tasks": [
-                {
-                    "task_id": "task_a",
-                    "operator": invalid_operator,
-                    "params": {},
-                }
-            ],
-        }
-
-        validator = ConfigValidator()
-        validator.validate(config)
-
-        # Operator validation might be deferred to operator registry
-        # This test documents expected behavior
-
     def test_validation_result_structure(self, sample_dag_config):
         """Test that ValidationResult has expected structure."""
         from dags.factory.config_validator import ConfigValidator, ValidationResult

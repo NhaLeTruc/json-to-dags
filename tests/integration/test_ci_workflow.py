@@ -100,29 +100,6 @@ class TestCIWorkflowStructure:
                 len(matching_jobs) > 0
             ), f"CI workflow missing '{job_name}' job ({job_description})"
 
-    def test_ci_workflow_uses_matrix_for_python_versions(self, ci_workflow_path):
-        """Test that CI workflow tests multiple Python versions."""
-        if not ci_workflow_path.exists():
-            pytest.skip("CI workflow file not yet created")
-
-        with open(ci_workflow_path) as f:
-            workflow = yaml.safe_load(f)
-
-        # Look for test job with matrix strategy
-        jobs = workflow.get("jobs", {})
-        test_jobs = [j for name, j in jobs.items() if "test" in name.lower()]
-
-        if not test_jobs:
-            pytest.skip("No test job found in CI workflow")
-
-        # At least one test job should use matrix
-        has_matrix = any("strategy" in job and "matrix" in job["strategy"] for job in test_jobs)
-
-        # Matrix is recommended but not strictly required for initial implementation
-        # This is more of a best practice check
-        if not has_matrix:
-            pytest.skip("Matrix strategy not yet implemented (recommended for future)")
-
 
 class TestCIWorkflowSteps:
     """Test CI workflow job steps."""
@@ -307,32 +284,6 @@ class TestWorkflowDependencies:
 
 class TestCoverageReporting:
     """Test coverage reporting configuration."""
-
-    def test_ci_workflow_generates_coverage(self, ci_workflow_path):
-        """Test that CI workflow generates code coverage report."""
-        if not ci_workflow_path.exists():
-            pytest.skip("CI workflow file not yet created")
-
-        with open(ci_workflow_path) as f:
-            workflow = yaml.safe_load(f)
-
-        jobs = workflow.get("jobs", {})
-
-        # Look for coverage in test job
-        has_coverage = False
-        for job_config in jobs.values():
-            steps = job_config.get("steps", [])
-            for step in steps:
-                run_command = step.get("run", "")
-                if "coverage" in run_command.lower() or "--cov" in run_command:
-                    has_coverage = True
-                    break
-            if has_coverage:
-                break
-
-        # Coverage is recommended but not strictly required initially
-        if not has_coverage:
-            pytest.skip("Coverage reporting not yet configured (recommended)")
 
 
 @pytest.mark.integration

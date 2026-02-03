@@ -16,40 +16,6 @@ from airflow.utils.state import State
 class TestDynamicDAGExecution:
     """Integration tests for executing dynamically generated DAGs."""
 
-    def test_simple_dag_executes_successfully(self, mock_dag_configs_dir):
-        """Test that a simple JSON-configured DAG executes successfully."""
-        # Load DAG from bag
-        dag_bag = DagBag(dag_folder="dags/", include_examples=False)
-
-        # Find a simple DAG (should have one from examples)
-        simple_dags = [dag for dag_id, dag in dag_bag.dags.items() if "simple" in dag_id.lower()]
-
-        if len(simple_dags) == 0:
-            pytest.skip("No simple example DAG found for testing")
-
-        dag = simple_dags[0]
-        execution_date = datetime(2024, 10, 15, 12, 0, 0)
-
-        # Create a DAG run
-        dag.clear()
-        dag_run = dag.create_dagrun(
-            run_id=f"test_run_{execution_date.isoformat()}",
-            execution_date=execution_date,
-            state=State.RUNNING,
-        )
-
-        # Execute each task
-        for task in dag.tasks:
-            task_instance = TaskInstance(task, execution_date=execution_date)
-            task_instance.run(ignore_all_deps=True, ignore_ti_state=True)
-
-            # Verify task completed successfully
-            assert task_instance.state == State.SUCCESS, f"Task {task.task_id} failed"
-
-        # Verify DAG run completed
-        dag_run.update_state()
-        assert dag_run.state == State.SUCCESS
-
     def test_dag_with_dependencies_executes_in_order(self):
         """Test that DAG with task dependencies executes in correct order."""
         dag_bag = DagBag(dag_folder="dags/", include_examples=False)

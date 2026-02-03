@@ -244,28 +244,6 @@ class TestSparkJobIdempotency:
 class TestGeneralIdempotencyPrinciples:
     """Test general idempotency principles across all DAGs."""
 
-    def test_extract_load_uses_truncate_and_load(self, dag_bag):
-        """Test that simple extract-load uses truncate-and-load pattern."""
-        dag_id = "demo_simple_extract_load_v1"
-
-        if dag_id not in dag_bag.dags:
-            pytest.skip(f"{dag_id} not implemented yet")
-
-        dag = dag_bag.get_dag(dag_id)
-
-        # Should have truncate or delete task before load
-        [
-            task
-            for task in dag.tasks
-            if any(
-                keyword in task.task_id.lower()
-                for keyword in ["truncate", "delete", "clear", "drop"]
-            )
-        ]
-
-        # This pattern ensures idempotency for full loads
-        # (Not required but common pattern)
-
     def test_temp_tables_cleaned_up(self, dag_bag):
         """Test that DAGs clean up temporary tables."""
         # Skip - this is implementation-specific
@@ -276,41 +254,3 @@ class TestGeneralIdempotencyPrinciples:
         # This is a code review check rather than automated test
         pytest.skip("Manual code review required")
 
-    def test_reruns_produce_same_data_hash(self, dag_bag, execution_date):
-        """Test that rerunning a DAG produces same data (by hash)."""
-        pytest.skip("Requires database access and data hashing - manual test")
-
-        # Conceptual test:
-        # 1. Run DAG
-        # 2. Calculate hash of output data
-        # 3. Rerun DAG with same execution_date
-        # 4. Calculate hash of output data again
-        # 5. Assert hashes match
-
-    def test_all_incremental_dags_use_where_clauses(self, dag_bag):
-        """Test that incremental DAGs use WHERE clauses to filter data."""
-        incremental_dags = [
-            "demo_incremental_load_v1",
-            "demo_scd_type2_v1",
-        ]
-
-        for dag_id in incremental_dags:
-            if dag_id not in dag_bag.dags:
-                continue
-
-            dag_bag.get_dag(dag_id)
-
-            # Check for SQL operators with WHERE clauses
-            # This is a best practice check
-            # Real implementation would need to inspect operator parameters
-
-    def test_no_global_state_mutations(self, dag_bag):
-        """Test that DAGs don't rely on global mutable state."""
-        # This is enforced by Airflow's design
-        # Each task should be independent and idempotent
-        pytest.skip("Enforced by Airflow architecture")
-
-    def test_file_operations_are_atomic(self, dag_bag):
-        """Test that file operations use atomic writes."""
-        # Implementation-specific - would need to check file operators
-        pytest.skip("Implementation-specific check")

@@ -4,8 +4,6 @@ Integration test for Docker Compose environment startup.
 Tests that all services start successfully and reach healthy state within timeout.
 """
 
-import subprocess
-
 import pytest
 
 
@@ -84,46 +82,6 @@ class TestDockerEnvironment:
                 "src" in volume_str or "logs" in volume_str
             ), f"Service '{service_name}' missing src/logs volume"
 
-    def test_environment_variables_configured(self):
-        """Test that essential environment variables are configured."""
-        import yaml
-
-        with open("docker-compose.yml") as f:
-            compose_config = yaml.safe_load(f)
-
-        services = compose_config.get("services", {})
-
-        # Check airflow webserver environment
-        webserver = services.get("airflow-webserver", {})
-        env = webserver.get("environment", {})
-
-        # Should have executor configuration
-        # Environment can be dict or list
-        str(env) if isinstance(env, dict) else str(env)
-
-        # Check for critical env vars (flexible check)
-        # These might be in x-airflow-common or inline
-
-    def test_services_reach_healthy_state(self):
-        """Test that services reach healthy state within timeout."""
-        # This test requires docker-compose to be running
-        # It checks service health status
-
-        try:
-            result = subprocess.run(
-                ["docker", "compose", "ps", "--format", "json"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-
-            if result.returncode == 0:
-                # Services are running - parse status
-                # This is informational, not a hard requirement
-                pass
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            pytest.skip("Docker not available or services not running")
-
     def test_postgres_services_use_correct_ports(self):
         """Test that PostgreSQL services use correct ports."""
         import yaml
@@ -183,14 +141,6 @@ class TestDockerEnvironment:
 
         for volume_name in expected_volumes:
             assert volume_name in volumes, f"Volume '{volume_name}' should be defined"
-
-    def test_startup_within_timeout(self):
-        """Test that services start within acceptable timeout (2 minutes)."""
-        # This is a placeholder for actual startup timing test
-        # In real scenario, would measure time from docker-compose up to all healthy
-
-        timeout_seconds = 120  # 2 minutes
-        assert timeout_seconds == 120, "Startup timeout should be 2 minutes"
 
     @pytest.mark.parametrize(
         "service_name",

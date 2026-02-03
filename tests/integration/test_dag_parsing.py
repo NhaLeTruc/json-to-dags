@@ -71,15 +71,6 @@ class TestDAGParsing:
                 assert hasattr(task, "task_id")
                 assert task.task_id is not None
 
-    def test_json_config_files_exist(self):
-        """Test that JSON config directory structure exists."""
-        config_dir = Path("dags/config")
-        config_dir / "examples"
-        config_dir / "schemas"
-
-        assert config_dir.exists(), "dags/config/ directory should exist"
-        # examples_dir and schemas_dir will be created during implementation
-
     def test_factory_module_imports_successfully(self):
         """Test that DAG factory module can be imported."""
         try:
@@ -90,16 +81,6 @@ class TestDAGParsing:
             assert operator_registry is not None
         except ImportError as e:
             pytest.fail(f"Failed to import factory modules: {e}")
-
-    def test_dynamically_generated_dags_in_globals(self):
-        """Test that dynamically generated DAGs are exposed in globals()."""
-        # This tests the mechanism by which Airflow discovers DAGs
-        # The factory should add DAGs to the module's globals()
-
-        dag_bag = DagBag(dag_folder="dags/", include_examples=False)
-
-        # Any DAG in the dag_bag should have been discovered
-        assert len(dag_bag.dags) >= 0  # May be 0 if no configs exist yet
 
     @pytest.mark.slow
     def test_dag_validation_passes(self):

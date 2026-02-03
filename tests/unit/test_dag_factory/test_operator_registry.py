@@ -137,25 +137,6 @@ class TestOperatorRegistry:
         assert isinstance(operator, BashOperator)
         assert operator.retries == 3
 
-    def test_register_operator_with_invalid_class_fails(self):
-        """Test that registering non-operator class fails."""
-        from dags.factory.operator_registry import OperatorRegistry
-
-        registry = OperatorRegistry()
-
-        # Try to register a non-operator class
-        class NotAnOperator:
-            pass
-
-        # Should either raise error or log warning
-        # Implementation can choose strict or lenient approach
-        try:
-            registry.register_operator("NotAnOperator", NotAnOperator)
-            # If it doesn't raise, that's also acceptable (lenient approach)
-        except (TypeError, ValueError):
-            # Strict approach - raises error
-            pass
-
     def test_get_operator_info(self):
         """Test getting operator metadata and documentation."""
         from dags.factory.operator_registry import OperatorRegistry

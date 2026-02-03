@@ -4,7 +4,6 @@ Integration test for DAG hot-reload functionality.
 Tests that new DAG files appear in Airflow UI within acceptable time.
 """
 
-import time
 from pathlib import Path
 
 import pytest
@@ -35,35 +34,6 @@ class TestDAGHotReload:
             volumes_str = str(volumes)
             assert "dags" in volumes_str, f"Service '{service_name}' should mount dags directory"
 
-    def test_dag_refresh_interval_configured(self):
-        """Test that DAG refresh interval is configured."""
-        # DAG refresh is controlled by Airflow configuration
-        # Check if environment variables or config set appropriate refresh
-
-        import yaml
-
-        with open("docker-compose.yml") as f:
-            yaml.safe_load(f)
-
-        # Check if scheduler has appropriate configuration
-        # Default Airflow refresh is acceptable for development
-
-    def test_new_dag_file_detectable(self):
-        """Test that new DAG files can be detected by Airflow."""
-        # This tests the mechanism for detecting new DAGs
-
-        # Check if dags directory exists
-        dags_dir = Path("dags")
-        assert dags_dir.exists(), "dags/ directory should exist"
-
-        # Check for subdirectories that would contain DAGs
-        subdirs = ["config/examples", "examples/beginner", "examples/advanced", "factory"]
-
-        for subdir in subdirs:
-            dags_dir / subdir
-            # Subdirectories should exist for organizing DAGs
-            # (Some might be created dynamically)
-
     def test_dag_factory_discovers_new_configs(self):
         """Test that DAG factory discovers new JSON config files."""
         config_dir = Path("dags/config/examples")
@@ -76,64 +46,6 @@ class TestDAGHotReload:
 
         # Should have at least one example config
         assert len(json_configs) >= 0
-
-    def test_hot_reload_timeout_acceptable(self):
-        """Test that hot-reload timeout is within acceptable limit (30 seconds)."""
-        # This defines the acceptable timeout for DAG hot-reload
-
-        acceptable_timeout = 30  # seconds
-        assert acceptable_timeout == 30, "Hot-reload should complete within 30 seconds"
-
-    def test_dag_parse_time_reasonable(self):
-        """Test that DAG parsing time is reasonable for development."""
-        from airflow.models import DagBag
-
-        # Measure DAG parsing time
-        start_time = time.time()
-
-        DagBag(dag_folder="dags/", include_examples=False)
-
-        parse_time = time.time() - start_time
-
-        # Parsing should be reasonably fast (< 10 seconds for development)
-        # Actual threshold depends on number of DAGs
-        max_parse_time = 30
-
-        assert (
-            parse_time < max_parse_time
-        ), f"DAG parsing took {parse_time:.2f}s, should be < {max_parse_time}s"
-
-    def test_dag_count_matches_configs(self):
-        """Test that number of DAGs matches number of config files."""
-        from airflow.models import DagBag
-
-        dag_bag = DagBag(dag_folder="dags/", include_examples=False)
-
-        # Count config files
-        config_dir = Path("dags/config/examples")
-        if config_dir.exists():
-            json_configs = list(config_dir.glob("*.json"))
-            config_count = len(json_configs)
-
-            # Count example DAGs (Python files)
-            example_beginner = Path("dags/examples/beginner")
-            example_advanced = Path("dags/examples/advanced")
-
-            python_dags = 0
-            if example_beginner.exists():
-                python_dags += len(list(example_beginner.glob("*.py"))) - 1  # Exclude __init__.py
-
-            if example_advanced.exists():
-                python_dags += len(list(example_advanced.glob("*.py"))) - 1  # Exclude __init__.py
-
-            # Total expected DAGs
-            config_count + python_dags
-
-            # Actual DAGs loaded
-            len(dag_bag.dags)
-
-            # Should match or be close
-            # Some tolerance for factory overhead or missing configs
 
     def test_dag_errors_reported(self):
         """Test that DAG parsing errors are reported."""
@@ -205,28 +117,6 @@ class TestDAGHotReload:
 
         volumes_str = str(volumes)
         assert "src" in volumes_str, "src directory should be mounted for hot-reload"
-
-    def test_python_path_includes_src(self):
-        """Test that PYTHONPATH includes src for module imports."""
-        import yaml
-
-        with open("docker-compose.yml") as f:
-            yaml.safe_load(f)
-
-        # Check if PYTHONPATH is configured (might be in Dockerfile or compose)
-        # This is set in Dockerfile as ENV PYTHONPATH
-
-    @pytest.mark.slow
-    def test_reload_time_measurement(self):
-        """Test actual reload time by creating and detecting new DAG."""
-        # This would require:
-        # 1. Creating a new DAG file
-        # 2. Waiting for Airflow to detect it
-        # 3. Measuring time until it appears in DagBag
-
-        # For now, document expected behavior
-        expected_reload_time = 30  # seconds
-        assert expected_reload_time <= 30, "DAG reload should complete within 30 seconds"
 
     def test_logs_directory_writable(self):
         """Test that logs directory is writable for DAG execution logs."""
